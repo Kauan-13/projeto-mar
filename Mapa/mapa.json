@@ -2133,7 +2133,7 @@
         {
          "columns":24,
          "firstgid":1,
-         "image":"Water and Island tiles.png",
+         "image":"Assets\/Water and Island tiles.png",
          "imageheight":144,
          "imagewidth":384,
          "margin":0,
@@ -2146,7 +2146,7 @@
         {
          "columns":8,
          "firstgid":217,
-         "image":"Fog.png",
+         "image":"Assets\/Fog.png",
          "imageheight":237,
          "imagewidth":135,
          "margin":0,
@@ -2159,7 +2159,7 @@
         {
          "columns":45,
          "firstgid":329,
-         "image":"Scallywag_Ships\/Ships tiles.png",
+         "image":"Assets\/Scallywag_Ships\/Ships tiles.png",
          "imageheight":672,
          "imagewidth":720,
          "margin":0,
