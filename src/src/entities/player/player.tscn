@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://c20yf2aoftj0t"]
+
+[ext_resource type="Script" uid="uid://dbjg1hj6iv5ca" path="res://src/entities/player/player.gd" id="1_vt6n5"]
+[ext_resource type="Texture2D" uid="uid://8f44gqs53h0l" path="res://assets/player.png" id="2_muk8e"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qficu"]
+size = Vector2(14, 16)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_vt6n5"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath("Sprite:flip_h")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:skin_id")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
+[node name="Player" type="CharacterBody2D" unique_id=442799846]
+z_index = 1
+collision_layer = 2
+script = ExtResource("1_vt6n5")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2016550870]
+texture_filter = 1
+texture = ExtResource("2_muk8e")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=155176575]
+shape = SubResource("RectangleShape2D_qficu")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=992157287]
+zoom = Vector2(5, 5)
+position_smoothing_enabled = true
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=632046896]
+replication_config = SubResource("SceneReplicationConfig_vt6n5")

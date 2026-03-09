@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://bnfbhecds00d5"]
+
+[ext_resource type="Script" uid="uid://cufgjepkj567p" path="res://src/scenes/menu.gd" id="1_2521n"]
+
+[node name="Menu" type="Node2D" unique_id=56657127]
+script = ExtResource("1_2521n")
+
+[node name="Control" type="Control" parent="." unique_id=543356744]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Host" type="Button" parent="Control" unique_id=426983900]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.12200001
+anchor_bottom = 0.082
+offset_left = 303.0
+offset_top = 162.0
+offset_right = 762.12
+offset_bottom = 287.72
+text = "HOST"
+
+[node name="Join" type="Button" parent="Control" unique_id=1450840442]
+layout_mode = 0
+offset_left = 296.0
+offset_top = 377.0
+offset_right = 770.0
+offset_bottom = 508.0
+text = "JOIN"
+
+[node name="Start" type="Button" parent="Control" unique_id=798558348]
+visible = false
+layout_mode = 0
+offset_left = 860.0
+offset_top = 428.0
+offset_right = 1084.0
+offset_bottom = 512.0
+text = "Start"
+
+[node name="StatusLabel" type="Label" parent="." unique_id=1814478238]
+offset_left = 302.0
+offset_top = 59.0
+offset_right = 576.0
+offset_bottom = 102.0
+
+[connection signal="pressed" from="Control/Host" to="." method="_on_host_pressed"]
+[connection signal="pressed" from="Control/Join" to="." method="_on_join_pressed"]
+[connection signal="pressed" from="Control/Start" to="." method="_on_start_pressed"]

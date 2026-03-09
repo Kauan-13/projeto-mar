@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://bf68le7pl005e"]
+
+[ext_resource type="Script" uid="uid://c53ueo4b11uis" path="res://src/scenes/level_1.gd" id="1_di3qs"]
+[ext_resource type="Texture2D" uid="uid://dlde7gijibehm" path="res://assets/mapa.png" id="1_taal7"]
+
+[node name="Level1" type="Node2D" unique_id=1251500298]
+script = ExtResource("1_di3qs")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1685265255]
+_spawnable_scenes = PackedStringArray("uid://c20yf2aoftj0t")
+spawn_path = NodePath("..")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=94571164]
+offset_left = -601.0
+offset_top = -497.0
+offset_right = 936.0
+offset_bottom = 1040.0
+texture = ExtResource("1_taal7")
