@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://b107cqe7wcrb7"]
+
+[ext_resource type="Script" uid="uid://bqk2g0pfopob0" path="res://src/entities/ship/ship.gd" id="1_3xyvr"]
+[ext_resource type="Texture2D" uid="uid://1lwlonuve7l1" path="res://assets/Ships standalone 1.png" id="2_kmuuk"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_8jtya"]
+radius = 79.00625
+height = 431.97766
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_3xyvr"]
+
+[node name="Ship" type="CharacterBody2D" unique_id=1312394166]
+scale = Vector2(0.6382248, 0.6382248)
+script = ExtResource("1_3xyvr")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=426200485]
+texture = ExtResource("2_kmuuk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=957811625]
+position = Vector2(-0.0062508583, -25.988823)
+shape = SubResource("CapsuleShape2D_8jtya")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=296995138]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1454802767]
+replication_config = SubResource("SceneReplicationConfig_3xyvr")

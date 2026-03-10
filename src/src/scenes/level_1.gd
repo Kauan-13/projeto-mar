@@ -1,38 +1,56 @@
 extends Node2D
 
+# Precarregamento das cenas necessárias
 var player_scene = preload("res://src/entities/player/player.tscn")
+var ship_scene = preload("res://src/entities/ship/ship.tscn") 
 
 func _ready():
-	# Apenas o servidor (Host) decide quem nasce e onde
+	# Apenas o servidor (Host) tem autoridade para instanciar entidades no mapa
 	if not multiplayer.is_server():
 		return
 	
-	# 1. Spawna o Host (ID 1)
-	add_player(1)
+	# 1. Spawna o Host (ID 1) sempre como um Pirata
+	add_entity(1, "player")
 	
-	# 2. Spawna todos os outros que JÁ estavam conectados no menu/lobby
-	# O get_peers() retorna a lista de IDs de todos os clientes atuais
-	for id in multiplayer.get_peers():
-		add_player(id)
+	# 2. Spawna os jogadores que já estão no lobby
+	var peers = multiplayer.get_peers()
+	for i in range(peers.size()):
+		var id = peers[i]
+		# No nosso teste, o primeiro peer que entrar (índice 0) controla o Navio
+		if i == 0:
+			add_entity(id, "ship")
+		else:
+			add_entity(id, "player")
 	
-	# 3. (Opcional) Conecta o sinal para o caso de alguém entrar com a partida em andamento
-	multiplayer.peer_connected.connect(add_player)
+	# 3. Escuta a entrada de novos jogadores durante a partida
+	multiplayer.peer_connected.connect(_on_peer_connected)
 
-func add_player(id: int):
+func _on_peer_connected(id):
+	# Se for o segundo jogador a entrar (Host + 1), ele assume o Navio
+	if multiplayer.get_peers().size() == 1:
+		add_entity(id, "ship")
+	else:
+		add_entity(id, "player")
+
+func add_entity(id: int, type: String):
+	# Evita duplicados se o sinal disparar duas vezes
 	if has_node(str(id)):
 		return
 		
-	var player = player_scene.instantiate()
-	player.name = str(id)
+	var entity
+	if type == "ship":
+		entity = ship_scene.instantiate()
+		print("A instanciar NAVIO para o jogador: ", id)
+	else:
+		entity = player_scene.instantiate()
+		# Define a skin do pirata: Host (1) vs Clientes (0)
+		entity.skin_id = 1 if id == 1 else 0
+		print("A instanciar PIRATA para o jogador: ", id)
 	
-	# 1. DEFINE A SKIN (Antes de entrar na árvore)
-	player.skin_id = 1 if id == 1 else 0
+	# Define o nome do nó como o ID do jogador para facilitar a autoridade
+	entity.name = str(id)
 	
-	# 2. DEFINE A AUTORIDADE (Antes de entrar na árvore)
-	# Isso garante que quando o cliente receber o nó, ele já saiba quem manda
-	player.set_multiplayer_authority(id)
+	# Define a autoridade de rede antes de adicionar à árvore de nós
+	entity.set_multiplayer_authority(id)
 	
-	# 3. SÓ AGORA ADICIONA À ÁRVORE
-	add_child(player)
-	
-	print("Player spawnado no mapa: ", id, " com skin: ", player.skin_id)
+	add_child(entity)
