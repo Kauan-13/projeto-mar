@@ -19,6 +19,7 @@ properties/2/replication_mode = 1
 
 [node name="Player" type="CharacterBody2D" unique_id=442799846]
 z_index = 1
+position = Vector2(118, 67)
 collision_layer = 2
 script = ExtResource("1_vt6n5")
 

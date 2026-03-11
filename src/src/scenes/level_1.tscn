@@ -7,7 +7,7 @@
 script = ExtResource("1_di3qs")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1685265255]
-_spawnable_scenes = PackedStringArray("uid://c20yf2aoftj0t")
+_spawnable_scenes = PackedStringArray("uid://c20yf2aoftj0t", "uid://b107cqe7wcrb7")
 spawn_path = NodePath("..")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=94571164]
