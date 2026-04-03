@@ -13,9 +13,6 @@ properties/0/replication_mode = 1
 properties/1/path = NodePath("Sprite:flip_h")
 properties/1/spawn = true
 properties/1/replication_mode = 1
-properties/2/path = NodePath(".:skin_id")
-properties/2/spawn = true
-properties/2/replication_mode = 1
 
 [node name="Player" type="CharacterBody2D" unique_id=442799846]
 z_index = 1
@@ -35,3 +32,12 @@ position_smoothing_enabled = true
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=632046896]
 replication_config = SubResource("SceneReplicationConfig_vt6n5")
+
+[node name="Label" type="Label" parent="." unique_id=251780460]
+offset_left = -6.0
+offset_top = -16.0
+offset_right = 48.415
+offset_bottom = 7.0
+scale = Vector2(0.23, 0.23)
+horizontal_alignment = 1
+vertical_alignment = 1

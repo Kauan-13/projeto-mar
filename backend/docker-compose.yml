@@ -1,0 +1,10 @@
+services:
+  game-api:
+    build: .
+    container_name: godot_backend
+    ports:
+      - "3000:3000"
+      - "1234-1250:1234-1250/udp"
+    volumes:
+      - .:/app
+    restart: always

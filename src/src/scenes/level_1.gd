@@ -7,8 +7,8 @@ func _ready():
 	if not multiplayer.is_server():
 		return
 	
-	# 1. Spawna o Host (ID 1)
-	add_player(1)
+	## 1. Spawna o Host (ID 1)
+	#add_player(1)
 	
 	# 2. Spawna todos os outros que JÁ estavam conectados no menu/lobby
 	# O get_peers() retorna a lista de IDs de todos os clientes atuais
@@ -17,6 +17,8 @@ func _ready():
 	
 	# 3. (Opcional) Conecta o sinal para o caso de alguém entrar com a partida em andamento
 	multiplayer.peer_connected.connect(add_player)
+	
+	multiplayer.peer_disconnected.connect(delete_player)
 
 func add_player(id: int):
 	if has_node(str(id)):
@@ -25,14 +27,15 @@ func add_player(id: int):
 	var player = player_scene.instantiate()
 	player.name = str(id)
 	
-	# 1. DEFINE A SKIN (Antes de entrar na árvore)
-	player.skin_id = 1 if id == 1 else 0
-	
 	# 2. DEFINE A AUTORIDADE (Antes de entrar na árvore)
 	# Isso garante que quando o cliente receber o nó, ele já saiba quem manda
 	player.set_multiplayer_authority(id)
 	
 	# 3. SÓ AGORA ADICIONA À ÁRVORE
-	add_child(player)
+	add_child(player, true)
 	
-	print("Player spawnado no mapa: ", id, " com skin: ", player.skin_id)
+	print("Player spawnado no mapa: ", id)
+
+func delete_player(id: int):
+	if has_node(str(id)):
+		get_node(str(id)).queue_free()
