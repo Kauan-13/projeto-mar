@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "phaser": "^3.80.1",
+    "phaser3-rex-plugins": "^1.80.20",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
