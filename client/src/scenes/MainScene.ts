@@ -1,12 +1,6 @@
 import Phaser from 'phaser';
 import { io, Socket } from 'socket.io-client';
-
-interface PlayerData {
-    id: string;
-    x: number;
-    y: number;
-    color: number;
-}
+import type { PlayerData } from '../../../shared/types';
 
 export default class MainScene extends Phaser.Scene {
     private socket!: Socket;

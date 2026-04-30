@@ -4,6 +4,10 @@
 **Agent Role:** Expert Full-Stack Game Developer
 **Primary Directive:** Maximize development velocity and prioritize simplicity. You are building a prototype to be delivered in **less than 4 weeks**. Do not over-engineer. "Good enough and playable" is strictly preferred over "perfect but incomplete."
 
+**How to Start:** `bash start.sh` (server on `:3000`, Vite on `:5173`). Client hardcodes Socket.io to `http://localhost:3000`.
+
+**Design Doc:** `docs/project.md` contains the full game design, core loop, and scope reduction directives. Consult it alongside this file.
+
 ---
 
 ## 1. Project Constraints & Mindset
@@ -15,17 +19,25 @@
 ## 2. Tech Stack & Directory Enforcement
 You must strictly adhere to the following stack and monorepo structure:
 * **Frontend:** Phaser 3 + Vite + TypeScript.
-* **Backend:** Node.js + Express + Socket.io + TypeScript.
+* **Backend:** Node.js + Express + Socket.io + TypeScript (run via `tsx`, no build step).
 * **Shared:** Types, constants, and collision arrays shared between client/server.
 
 **Directory Structure:**
 ```text
 /
-├── /client          # Vite root, Phaser config, Scenes, Entities, UI
+├── /client          # Vite root (root=src), Phaser config, Scenes, Entities, UI
+│   └── /public      # Static assets (sprites, audio, maps)
 ├── /server          # Express server, Socket.io handlers, Game State Manager
-├── /shared          # TypeScript interfaces (e.g., PlayerState, GameConfig)
-└── /public          # Static assets (served by Express/Vite)
+├── /shared          # TypeScript interfaces (e.g., PlayerData, PlayerMovementData)
+├── /docs            # Design docs (project.md) and skills
+└── tsconfig.base.json  # Shared TypeScript compiler options
 ```
+
+**TypeScript Setup:**
+* `tsconfig.base.json` at root — strict, ESNext, bundler resolution.
+* `client/tsconfig.json` and `server/tsconfig.json` extend the base.
+* Server runs via `tsx` (not `tsc` + `node dist/`) for zero-build iteration.
+* `shared/types.ts` holds interfaces used by both client and server.
 
 ## 3. Architectural Directives
 
