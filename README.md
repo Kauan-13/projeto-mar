@@ -46,9 +46,29 @@ Abra `http://localhost:5173` no navegador. Duas abas = dois jogadores.
 │   │   ├── entities/         # (stub) Entidades do jogo
 │   │   └── network/          # (stub) Gerenciador de rede
 │   └── public/assets/
-│       ├── sprites/          # player/, ship/, enemies/
-│       ├── audio/            # (vazio)
-│       └── maps/             # mapa.json, mapa.png
+│       ├── maps/
+│       │   └── mapa.json         # Export do Tiled (30×20 tiles, infinito)
+│       ├── tilesets/
+│       │   ├── Water and Island tiles.png  # Tiles de água e ilhas (384×144)
+│       │   ├── Fog.png                    # Tiles de neblina (135×237)
+│       │   ├── ships_tiles.png            # Tiles do navio (cópia do Scallywag_Ships)
+│       │   ├── plants-and-flowers-8px_floortiles.png
+│       │   └── plants-and-flowers-8px.png
+│       ├── sprites/
+│       │   ├── player/
+│       │   │   ├── player_1.png
+│       │   │   └── player_2.png
+│       │   ├── ship/Scallywag_Ships/  # Assets do navio (tileset, animações GIF, .aseprite)
+│       │   ├── objects/
+│       │   │   ├── Chest Animations.gif
+│       │   │   └── Open chest Animations.gif
+│       │   ├── environment/
+│       │   │   ├── Wave shore 1 animation.gif
+│       │   │   ├── Wave shore 2 animation.gif
+│       │   │   └── waves Animations.gif
+│       │   └── enemies/       # (vazio)
+│       ├── audio/             # (vazio)
+│       └── unsorted/          # Arquivos-fonte (.aseprite) e mockups — não carregados em runtime
 │
 ├── server/                   # Backend Node.js + Socket.io
 │   ├── server.ts             # Servidor principal — estado, validação, broadcast
