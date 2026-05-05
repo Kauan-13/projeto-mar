@@ -1,10 +1,12 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
-import type { PlayerData, PlayerMovementData } from '../shared/types.js';
+import type { PlayerData, PlayerMovementData } from '../shared/types.ts';
 
 const app = express();
 const httpServer = createServer(app);
+const SHIP_X = 640;
+const SHIP_Y = 640;
 
 // Allow CORS for development with Vite
 const io = new Server(httpServer, {
@@ -21,11 +23,13 @@ const GAME_SPEED = 5;
 io.on('connection', (socket: Socket) => {
   console.log(`Player connected: ${socket.id}`);
 
-  // Create new player with a random color and starting position
+  // Create new player on the ship deck
+  const playerCount = Object.keys(players).length;
+  const offsetX = playerCount === 0 ? -30 : 30;
   const newPlayer: PlayerData = {
     id: socket.id,
-    x: Math.floor(Math.random() * 400) + 200,
-    y: Math.floor(Math.random() * 300) + 150,
+    x: SHIP_X + offsetX,
+    y: SHIP_Y,
     color: Math.floor(Math.random() * 16777215)
   };
   players[socket.id] = newPlayer;

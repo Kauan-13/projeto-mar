@@ -1,16 +1,27 @@
 import Phaser from 'phaser';
 import { io, Socket } from 'socket.io-client';
 import type { PlayerData } from '../../../shared/types';
+import { SHIP_X, SHIP_Y } from '../../../shared/types';
 
 export default class MainScene extends Phaser.Scene {
     private socket!: Socket;
     private otherPlayers!: Phaser.GameObjects.Group;
-    private player!: Phaser.GameObjects.Rectangle;
+    private player!: Phaser.GameObjects.Sprite;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private speed: number = 5;
 
     constructor() {
         super('MainScene');
+    }
+
+    preload() {
+        this.load.tilemapTiledJSON('map', 'assets/maps/mapa.json');
+        this.load.image('water_tiles', 'assets/tilesets/Water and Island tiles.png');
+        this.load.image('fog_tiles', 'assets/tilesets/Fog.png');
+        this.load.image('ship_tiles', 'assets/tilesets/ships_tiles.png');
+        this.load.spritesheet('player_1', 'assets/sprites/player/player_1.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.spritesheet('player_2', 'assets/sprites/player/player_2.png', { frameWidth: 16, frameHeight: 16 });
+        this.load.image('ship', 'assets/sprites/ship/basic_ship.png');
     }
 
     create() {
@@ -72,6 +83,29 @@ export default class MainScene extends Phaser.Scene {
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
+
+        // Tilemap
+        const map = this.add.tilemap('map');
+        const waterTileset = map.addTilesetImage('Water and Island tiles', 'water_tiles');
+        const fogTileset = map.addTilesetImage('Fog', 'fog_tiles');
+        const shipTileset = map.addTilesetImage('Ships tiles', 'ship_tiles');
+
+        const allTilesets = [waterTileset!, fogTileset!, shipTileset!];
+
+        const marLayer = map.createLayer('mar', allTilesets);
+        const ilhasLayer = map.createLayer('ilhas', allTilesets);
+        const aguasLayer = map.createLayer('aguas-rasas', allTilesets);
+        const propsLayer = map.createLayer('props', allTilesets);
+        const nevoaLayer = map.createLayer('nevoa', allTilesets);
+
+        [marLayer, ilhasLayer, aguasLayer, propsLayer, nevoaLayer].forEach(l => l?.setDepth(0));
+
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+        // Ship
+        const ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
+        ship.setScale(3);
+        ship.setDepth(5);
     }
 
     update() {
@@ -108,14 +142,18 @@ export default class MainScene extends Phaser.Scene {
     }
 
     addPlayer(playerInfo: PlayerData) {
-        // Player is a colored rectangle
-        this.player = this.add.rectangle(playerInfo.x, playerInfo.y, 32, 32, playerInfo.color);
-        this.player.setStrokeStyle(2, 0xffffff);
+        this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
+        this.player.setScale(2);
+        this.player.setDepth(10);
+        this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
+        this.cameras.main.startFollow(this.player);
     }
 
     addOtherPlayer(playerInfo: PlayerData) {
-        const otherPlayer = this.add.rectangle(playerInfo.x, playerInfo.y, 32, 32, playerInfo.color) as any;
-        otherPlayer.playerId = playerInfo.id;
+        const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player_2', 0);
+        otherPlayer.setScale(2);
+        (otherPlayer as any).playerId = playerInfo.id;
+        otherPlayer.setDepth(10);
         this.otherPlayers.add(otherPlayer);
     }
 }
