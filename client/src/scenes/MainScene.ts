@@ -93,12 +93,17 @@ export default class MainScene extends Phaser.Scene {
         const allTilesets = [waterTileset!, fogTileset!, shipTileset!];
 
         const marLayer = map.createLayer('mar', allTilesets);
-        const ilhasLayer = map.createLayer('ilhas', allTilesets);
-        const aguasLayer = map.createLayer('aguas-rasas', allTilesets);
-        const propsLayer = map.createLayer('props', allTilesets);
+        const ilha1 = map.createLayer('ilha1',allTilesets);
+        const ilha1props = map.createLayer('ilha1props',allTilesets);
+        const ilha2 = map.createLayer('ilha2',allTilesets);
+        const ilha2props = map.createLayer('ilha2props',allTilesets);
+        const ilha3 = map.createLayer('ilha3',allTilesets);
+        const ilha3props = map.createLayer('ilha3props',allTilesets);
+        const ilha4 = map.createLayer('ilha4',allTilesets);
+        const ilha4props = map.createLayer('ilha4props',allTilesets);
         const nevoaLayer = map.createLayer('nevoa', allTilesets);
 
-        [marLayer, ilhasLayer, aguasLayer, propsLayer, nevoaLayer].forEach(l => l?.setDepth(0));
+        [marLayer, nevoaLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props].forEach(l => l?.setDepth(0));
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
