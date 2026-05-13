@@ -89,3 +89,16 @@ public/assets/
 - **Audio:** Must implement "Tap to Start" screen before any `sound.add()` call (browser autoplay policy).
 - **Surgical edits:** Touch only what you must. Don't refactor adjacent code.
 - **Prefer simple collisions:** AABB or circles over rotated bounding boxes.
+
+## Documentation References
+
+| Library / Tool | Docs URL |
+|----------------|----------|
+| Phaser 3 | https://docs.phaser.io (https://newdocs.phaser.io) |
+| Vite | https://vitejs.dev |
+| Socket.io | https://socket.io/docs/v4/ |
+| Express 5 | https://expressjs.com/en/5x/api.html |
+| RexUI Virtual Joystick | https://rexrainbow.github.io/phaser3-rex-notes/docs/site/virtualjoystick/ |
+| tsx | https://tsx.hirok.io (repo: https://github.com/privatenumber/tsx) |
+| Tiled Map Editor | https://doc.mapeditor.org/en/stable/ |
+| TypeScript | https://www.typescriptlang.org/docs/ |
