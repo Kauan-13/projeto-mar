@@ -43,28 +43,47 @@
 - Client-side prediction: move immediately, emit position to server.
 - Other players currently snap to position (lerp/interpolation planned).
 - Arrow keys work. RexUI Virtual Joystick plugin is **installed and registered** but not wired into MainScene yet.
+- **Map:** Tiled finite map (80×80 tiles, 1280×1280px), loaded via `tilemapTiledJSON`. 5 layers (`mar`, `ilhas`, `aguas-rasas`, `props`, `nevoa`), 3 tilesets. Camera bounds set to map pixel dimensions.
+- **Ship:** `basic_ship.png` at scale 3, depth 5, at map center (640, 640). Currently static — station interaction not yet implemented.
+- **Player sprites:** Spritesheets (48×128, 16×16 frames). Frame 0 only for now. Local player = `player_1`, remote players = `player_2`.
 
 ### RexUI Virtual Joystick
 - Installed: `phaser3-rex-plugins` (npm dep in client).
 - Registered in `client/src/main.ts` as global plugin with key `rexVirtualJoystick`.
 - To create in a scene: `scene.plugins.get('rexVirtualJoystick').add(scene, config)`.
 
+### Asset Organization
+```
+public/assets/
+├── maps/         # Tiled .json exports (mapa.json)
+│   └── Assets/   # Symlink → ../tilesets (so Tiled resolves tilesets in-editor)
+├── tilesets/     # Tileset images used by maps (water, fog, ships, plants)
+├── sprites/
+│   ├── player/   # Player spritesheets (player_1.png, player_2.png)
+│   ├── ship/     # basic_ship.png + Scallywag_Ships asset pack
+│   ├── objects/  # Chest, etc.
+│   └── environment/  # Wave, shore animations
+├── audio/        # (empty)
+└── unsorted/     # Source files (.aseprite), mockups — not loaded at runtime
+```
+
 ### TypeScript
 - `tsconfig.base.json` → `client/tsconfig.json` and `server/tsconfig.json`.
 - Server runs via `tsx server.ts`, no `tsc` build step.
 - New shared interfaces → `shared/types.ts`.
+- **Quirk:** Server value imports from `shared/` need `.ts` extension (`import { SHIP_X } from '../shared/types.ts'`). `import type` also uses `.ts`.
 
 ## Development Sprints (Do NOT jump ahead)
 
 | # | Milestone | Status |
 |---|-----------|--------|
 | 1 | Walking skeleton: squares move + sync via Socket.io | Done |
-| 2 | Ship platform, stations (helm/cannons), camera transitions | Next |
+| 2 | Ship platform, stations (helm/cannons), camera transitions | In progress (map, ship, sprites done) |
 | 3 | Waves, chaser enemies, cannon firing | Later |
 | 4 | Shop/upgrades UI, sprite replacement | Later |
 
 ## Constraints & Conventions
-- **Placeholders first:** Use `Phaser.GameObjects.Rectangle`/`Circle` with distinct colors. Sprites only in final polish.
+- **Placeholders first:** Use `Phaser.GameObjects.Rectangle`/`Circle` with distinct colors for new entities (enemies, projectiles, etc.). Sprites only when the mechanic is proven or the asset already exists. (Player and ship already use sprites.)
 - **No database:** All state in Node.js memory.
 - **Mobile touch:** RexUI joystick only. No custom touch-event code.
 - **Audio:** Must implement "Tap to Start" screen before any `sound.add()` call (browser autoplay policy).
