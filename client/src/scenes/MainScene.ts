@@ -24,10 +24,8 @@ export default class MainScene extends Phaser.Scene {
     private otherPlayers!: Phaser.GameObjects.Group;
     private player!: Phaser.GameObjects.Sprite;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-    private ship!: Phaser.GameObjects.Sprite;
     private playerOffsetX: number = 0;
     private playerOffsetY: number = 0;
-    private speed: number = 5;
 
     private ship!: Phaser.GameObjects.Sprite;
     private stationRects: Phaser.GameObjects.Rectangle[] = [];
@@ -108,6 +106,12 @@ export default class MainScene extends Phaser.Scene {
             this.ship.x = data.x;
             this.ship.y = data.y;
             this.updateStationPositions();
+
+            // Recompute local player position from ship-relative offset
+            if (this.player && this.playerStation === null) {
+                this.player.x = this.ship.x + this.playerOffsetX;
+                this.player.y = this.ship.y + this.playerOffsetY;
+            }
         });
 
         this.socket.on('playersMoved', (players: { [id: string]: PlayerData }) => {
@@ -147,14 +151,18 @@ export default class MainScene extends Phaser.Scene {
 
         const allTilesets = [waterTileset!, fogTileset!, shipTileset!];
 
-        const layers = [
-            'mar', 'nevoa',
-            'ilha1', 'ilha1props',
-            'ilha2', 'ilha2props',
-            'ilha3', 'ilha3props',
-            'ilha4', 'ilha4props',
-        ];
-        layers.forEach(name => map.createLayer(name, allTilesets)?.setDepth(0));
+        const marLayer = map.createLayer('mar', allTilesets);
+        const nevoaLayer = map.createLayer('nevoa', allTilesets);
+        const ilha1 = map.createLayer('ilha1', allTilesets);
+        const ilha1props = map.createLayer('ilha1props', allTilesets);
+        const ilha2 = map.createLayer('ilha2', allTilesets);
+        const ilha2props = map.createLayer('ilha2props', allTilesets);
+        const ilha3 = map.createLayer('ilha3', allTilesets);
+        const ilha3props = map.createLayer('ilha3props', allTilesets);
+        const ilha4 = map.createLayer('ilha4', allTilesets);
+        const ilha4props = map.createLayer('ilha4props', allTilesets);
+
+        [marLayer, nevoaLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props].forEach(l => l?.setDepth(0));
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -206,23 +214,6 @@ export default class MainScene extends Phaser.Scene {
                 this.exitStation();
             }
         }
-    }
-
-    addPlayer(playerInfo: PlayerData) {
-        this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
-        this.player.setScale(1);
-        this.player.setDepth(10);
-        this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
-        this.cameras.main.startFollow(this.player);
-    }
-
-    addOtherPlayer(playerInfo: PlayerData) {
-        const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player_2', 0);
-        otherPlayer.setScale(1);
-        (otherPlayer as any).playerId = playerInfo.id;
-        (otherPlayer as any).station = null;
-        otherPlayer.setDepth(10);
-        this.otherPlayers.add(otherPlayer);
     }
 
     private createStations() {
@@ -279,6 +270,8 @@ export default class MainScene extends Phaser.Scene {
         const rect = this.stationRects.find(r => (r as any).stationKey === station);
         if (rect) {
             this.player.setPosition(rect.x, rect.y);
+            this.playerOffsetX = this.player.x - this.ship.x;
+            this.playerOffsetY = this.player.y - this.ship.y;
         }
 
         if (station === 'rudder') {
@@ -322,8 +315,18 @@ export default class MainScene extends Phaser.Scene {
         }
 
         if (moved) {
-            this.player.x += dx;
-            this.player.y += dy;
+            this.playerOffsetX += dx;
+            this.playerOffsetY += dy;
+
+            const DECK_MARGIN_Y = 50;
+            const maxOffX = (this.ship.displayWidth - this.player.displayWidth) / 2;
+            const maxOffY = (this.ship.displayHeight - this.player.displayHeight) / 2 - DECK_MARGIN_Y;
+            this.playerOffsetX = Phaser.Math.Clamp(this.playerOffsetX, -maxOffX, maxOffX);
+            this.playerOffsetY = Phaser.Math.Clamp(this.playerOffsetY, -maxOffY, maxOffY);
+
+            this.player.x = this.ship.x + this.playerOffsetX;
+            this.player.y = this.ship.y + this.playerOffsetY;
+
             this.socket.emit('playerMovement', { x: this.player.x, y: this.player.y });
         }
     }
@@ -351,34 +354,19 @@ export default class MainScene extends Phaser.Scene {
             }
 
             if (moved) {
-                this.playerOffsetX += dx;
-                this.playerOffsetY += dy;
-
-                const DECK_MARGIN_Y = 50;
-                const maxOffX = (this.ship.displayWidth - this.player.displayWidth) / 2;
-                const maxOffY = (this.ship.displayHeight - this.player.displayHeight) / 2 - DECK_MARGIN_Y;
-                this.playerOffsetX = Phaser.Math.Clamp(this.playerOffsetX, -maxOffX, maxOffX);
-                this.playerOffsetY = Phaser.Math.Clamp(this.playerOffsetY, -maxOffY, maxOffY);
-
-                this.player.x = this.ship.x + this.playerOffsetX;
-                this.player.y = this.ship.y + this.playerOffsetY;
-                // Move ship
                 this.ship.x += dx;
                 this.ship.y += dy;
-
-                // Move station hitboxes to ship-relative positions
                 this.updateStationPositions();
 
-                // Move all players with the ship (they ride the deck)
-                this.player.x += dx;
-                this.player.y += dy;
+                // Recompute player from ship-relative offset (offset stays constant)
+                this.player.x = this.ship.x + this.playerOffsetX;
+                this.player.y = this.ship.y + this.playerOffsetY;
 
                 this.otherPlayers.getChildren().forEach((other: any) => {
                     other.x += dx;
                     other.y += dy;
                 });
 
-                // Emit ship position change
                 this.socket.emit('shipMove', { x: this.ship.x, y: this.ship.y });
             }
         } else if (this.playerStation === 'cannon_left' || this.playerStation === 'cannon_right') {
@@ -394,7 +382,7 @@ export default class MainScene extends Phaser.Scene {
         this.playerOffsetY = playerInfo.y - this.ship.y;
 
         this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
-        this.player.setScale(2);
+        this.player.setScale(1);
         this.player.setDepth(10);
         this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
         this.cameras.main.startFollow(this.player);
@@ -402,10 +390,13 @@ export default class MainScene extends Phaser.Scene {
 
     addOtherPlayer(playerInfo: PlayerData) {
         const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player_2', 0);
-        otherPlayer.setScale(2);
+        otherPlayer.setScale(1);
         (otherPlayer as any).playerId = playerInfo.id;
+        (otherPlayer as any).station = null;
         otherPlayer.setDepth(10);
         this.otherPlayers.add(otherPlayer);
+    }
+
     private fireCannonball(direction: number) {
         const ball = this.add.circle(
             this.ship.x + direction * 80,
