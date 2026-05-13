@@ -148,7 +148,7 @@ export default class MainScene extends Phaser.Scene {
 
     addPlayer(playerInfo: PlayerData) {
         this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
-        this.player.setScale(2);
+        this.player.setScale(1);
         this.player.setDepth(10);
         this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
         this.cameras.main.startFollow(this.player);

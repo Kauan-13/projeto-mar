@@ -4,6 +4,9 @@ import VirtualJoystickPlugin from 'phaser3-rex-plugins/plugins/virtualjoystick-p
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
+    render: {
+        pixelArt: true,
+    },
     parent: 'game-container',
     scale: {
         mode: Phaser.Scale.FIT,
