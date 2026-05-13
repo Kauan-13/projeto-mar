@@ -24,6 +24,10 @@ export default class MainScene extends Phaser.Scene {
     private otherPlayers!: Phaser.GameObjects.Group;
     private player!: Phaser.GameObjects.Sprite;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+    private ship!: Phaser.GameObjects.Sprite;
+    private playerOffsetX: number = 0;
+    private playerOffsetY: number = 0;
+    private speed: number = 5;
 
     private ship!: Phaser.GameObjects.Sprite;
     private stationRects: Phaser.GameObjects.Rectangle[] = [];
@@ -94,6 +98,8 @@ export default class MainScene extends Phaser.Scene {
 
         this.socket.on('forcePosition', (playerInfo: PlayerData) => {
             if (this.player) {
+                this.playerOffsetX = playerInfo.x - this.ship.x;
+                this.playerOffsetY = playerInfo.y - this.ship.y;
                 this.player.setPosition(playerInfo.x, playerInfo.y);
             }
         });
@@ -152,10 +158,20 @@ export default class MainScene extends Phaser.Scene {
 
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
+        // Ship
         this.ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
         this.ship.setScale(3);
         this.ship.setDepth(5);
 
+        // Ship physics + island collision
+        this.physics.add.existing(this.ship);
+        const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
+        shipBody.allowGravity = false;
+
+        [ilha1, ilha2, ilha3, ilha4].forEach(layer => {
+            layer!.setCollisionByExclusion([-1]);
+            this.physics.add.collider(this.ship, layer!);
+        });
         this.createStations();
     }
 
@@ -335,6 +351,17 @@ export default class MainScene extends Phaser.Scene {
             }
 
             if (moved) {
+                this.playerOffsetX += dx;
+                this.playerOffsetY += dy;
+
+                const DECK_MARGIN_Y = 50;
+                const maxOffX = (this.ship.displayWidth - this.player.displayWidth) / 2;
+                const maxOffY = (this.ship.displayHeight - this.player.displayHeight) / 2 - DECK_MARGIN_Y;
+                this.playerOffsetX = Phaser.Math.Clamp(this.playerOffsetX, -maxOffX, maxOffX);
+                this.playerOffsetY = Phaser.Math.Clamp(this.playerOffsetY, -maxOffY, maxOffY);
+
+                this.player.x = this.ship.x + this.playerOffsetX;
+                this.player.y = this.ship.y + this.playerOffsetY;
                 // Move ship
                 this.ship.x += dx;
                 this.ship.y += dy;
@@ -362,6 +389,23 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    addPlayer(playerInfo: PlayerData) {
+        this.playerOffsetX = playerInfo.x - this.ship.x;
+        this.playerOffsetY = playerInfo.y - this.ship.y;
+
+        this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
+        this.player.setScale(2);
+        this.player.setDepth(10);
+        this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
+        this.cameras.main.startFollow(this.player);
+    }
+
+    addOtherPlayer(playerInfo: PlayerData) {
+        const otherPlayer = this.add.sprite(playerInfo.x, playerInfo.y, 'player_2', 0);
+        otherPlayer.setScale(2);
+        (otherPlayer as any).playerId = playerInfo.id;
+        otherPlayer.setDepth(10);
+        this.otherPlayers.add(otherPlayer);
     private fireCannonball(direction: number) {
         const ball = this.add.circle(
             this.ship.x + direction * 80,
