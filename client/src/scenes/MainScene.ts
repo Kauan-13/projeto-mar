@@ -8,6 +8,9 @@ export default class MainScene extends Phaser.Scene {
     private otherPlayers!: Phaser.GameObjects.Group;
     private player!: Phaser.GameObjects.Sprite;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+    private ship!: Phaser.GameObjects.Sprite;
+    private playerOffsetX: number = 0;
+    private playerOffsetY: number = 0;
     private speed: number = 5;
 
     constructor() {
@@ -75,6 +78,8 @@ export default class MainScene extends Phaser.Scene {
         // Server forces position correction
         this.socket.on('forcePosition', (playerInfo: PlayerData) => {
             if (this.player) {
+                this.playerOffsetX = playerInfo.x - this.ship.x;
+                this.playerOffsetY = playerInfo.y - this.ship.y;
                 this.player.setPosition(playerInfo.x, playerInfo.y);
             }
         });
@@ -108,9 +113,19 @@ export default class MainScene extends Phaser.Scene {
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
         // Ship
-        const ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
-        ship.setScale(3);
-        ship.setDepth(5);
+        this.ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
+        this.ship.setScale(3);
+        this.ship.setDepth(5);
+
+        // Ship physics + island collision
+        this.physics.add.existing(this.ship);
+        const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
+        shipBody.allowGravity = false;
+
+        [ilha1, ilha2, ilha3, ilha4].forEach(layer => {
+            layer!.setCollisionByExclusion([-1]);
+            this.physics.add.collider(this.ship, layer!);
+        });
     }
 
     update() {
@@ -136,9 +151,17 @@ export default class MainScene extends Phaser.Scene {
             }
 
             if (moved) {
-                // Client-side prediction
-                this.player.x += dx;
-                this.player.y += dy;
+                this.playerOffsetX += dx;
+                this.playerOffsetY += dy;
+
+                const DECK_MARGIN_Y = 50;
+                const maxOffX = (this.ship.displayWidth - this.player.displayWidth) / 2;
+                const maxOffY = (this.ship.displayHeight - this.player.displayHeight) / 2 - DECK_MARGIN_Y;
+                this.playerOffsetX = Phaser.Math.Clamp(this.playerOffsetX, -maxOffX, maxOffX);
+                this.playerOffsetY = Phaser.Math.Clamp(this.playerOffsetY, -maxOffY, maxOffY);
+
+                this.player.x = this.ship.x + this.playerOffsetX;
+                this.player.y = this.ship.y + this.playerOffsetY;
 
                 // Emit movement to server
                 this.socket.emit('playerMovement', { x: this.player.x, y: this.player.y });
@@ -147,6 +170,9 @@ export default class MainScene extends Phaser.Scene {
     }
 
     addPlayer(playerInfo: PlayerData) {
+        this.playerOffsetX = playerInfo.x - this.ship.x;
+        this.playerOffsetY = playerInfo.y - this.ship.y;
+
         this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
         this.player.setScale(2);
         this.player.setDepth(10);
