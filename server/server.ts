@@ -35,7 +35,9 @@ io.on('connection', (socket: Socket) => {
     x: SHIP_X + offsetX,
     y: SHIP_Y,
     color: Math.floor(Math.random() * 16777215),
-    station: null
+    station: null,
+    state: 'idle',
+    direction: 'down'
   };
   players[socket.id] = newPlayer;
 
@@ -63,6 +65,8 @@ io.on('connection', (socket: Socket) => {
       if (distanceSq <= maxDist) {
         player.x = movementData.x;
         player.y = movementData.y;
+        if (movementData.state) player.state = movementData.state;
+        if (movementData.direction) player.direction = movementData.direction;
         // Broadcast the updated position to other players
         socket.broadcast.emit('playerMoved', player);
       } else {
