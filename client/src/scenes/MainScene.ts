@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { io, Socket } from 'socket.io-client';
-import type { PlayerData, Station } from '../../../shared/types';
+import type { PlayerData, Station, PlayerState, PlayerDirection } from '../../../shared/types';
 import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED } from '../../../shared/types';
 
 interface StationDef {
@@ -30,6 +30,8 @@ export default class MainScene extends Phaser.Scene {
     private ship!: Phaser.GameObjects.Sprite;
     private stationRects: Phaser.GameObjects.Rectangle[] = [];
     private playerStation: Station = null;
+    private playerDirection: PlayerDirection = 'down';
+    private lastEmittedState: PlayerState = 'idle';
     private keyE!: Phaser.Input.Keyboard.Key;
     private keySpace!: Phaser.Input.Keyboard.Key;
     private cannonballs!: Phaser.GameObjects.Group;
@@ -90,6 +92,7 @@ export default class MainScene extends Phaser.Scene {
             this.otherPlayers.getChildren().forEach((otherPlayer: any) => {
                 if (playerInfo.id === otherPlayer.playerId) {
                     otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+                    this.playPlayerAnimation(otherPlayer, playerInfo.state, playerInfo.direction);
                 }
             });
         });
@@ -124,6 +127,7 @@ export default class MainScene extends Phaser.Scene {
                     this.otherPlayers.getChildren().forEach((otherPlayer: any) => {
                         if (id === otherPlayer.playerId) {
                             otherPlayer.setPosition(players[id].x, players[id].y);
+                            this.playPlayerAnimation(otherPlayer, players[id].state, players[id].direction);
                         }
                     });
                 }
@@ -181,6 +185,8 @@ export default class MainScene extends Phaser.Scene {
             this.physics.add.collider(this.ship, layer!);
         });
         this.createStations();
+        this.createPlayerAnimations('player_1', 'player1');
+        this.createPlayerAnimations('player_2', 'player2');
     }
 
     update() {
@@ -274,6 +280,20 @@ export default class MainScene extends Phaser.Scene {
             this.playerOffsetY = this.player.y - this.ship.y;
         }
 
+        if (station === 'cannon_left') {
+            this.playerDirection = 'left';
+        } else if (station === 'cannon_right') {
+            this.playerDirection = 'right';
+        } else {
+            this.playerDirection = 'down';
+        }
+        this.playPlayerAnimation(this.player, 'idle', this.playerDirection);
+        this.socket.emit('playerMovement', {
+            x: this.player.x, y: this.player.y,
+            state: 'idle', direction: this.playerDirection
+        });
+        this.lastEmittedState = 'idle';
+
         if (station === 'rudder') {
             this.cameras.main.stopFollow();
             this.cameras.main.setZoom(0.5);
@@ -294,27 +314,30 @@ export default class MainScene extends Phaser.Scene {
     }
 
     private handleDeckMovement() {
-        let moved = false;
         let dx = 0;
         let dy = 0;
 
         if (this.cursors.left.isDown) {
             dx = -this.speed;
-            moved = true;
         } else if (this.cursors.right.isDown) {
             dx = this.speed;
-            moved = true;
         }
 
         if (this.cursors.up.isDown) {
             dy = -this.speed;
-            moved = true;
         } else if (this.cursors.down.isDown) {
             dy = this.speed;
-            moved = true;
         }
 
+        const moved = dx !== 0 || dy !== 0;
+
         if (moved) {
+            const dir = this.directionFromDelta(dx, dy);
+            if (dir) {
+                this.playerDirection = dir;
+                this.playPlayerAnimation(this.player, 'walk', dir);
+            }
+
             this.playerOffsetX += dx;
             this.playerOffsetY += dy;
 
@@ -327,38 +350,47 @@ export default class MainScene extends Phaser.Scene {
             this.player.x = this.ship.x + this.playerOffsetX;
             this.player.y = this.ship.y + this.playerOffsetY;
 
-            this.socket.emit('playerMovement', { x: this.player.x, y: this.player.y });
+            this.socket.emit('playerMovement', {
+                x: this.player.x, y: this.player.y,
+                state: 'walk', direction: this.playerDirection
+            });
+            this.lastEmittedState = 'walk';
+        } else {
+            this.playPlayerAnimation(this.player, 'idle', this.playerDirection);
+            if (this.lastEmittedState !== 'idle') {
+                this.socket.emit('playerMovement', {
+                    x: this.player.x, y: this.player.y,
+                    state: 'idle', direction: this.playerDirection
+                });
+                this.lastEmittedState = 'idle';
+            }
         }
     }
 
     private handleStationOperation() {
         if (this.playerStation === 'rudder') {
-            let moved = false;
             let dx = 0;
             let dy = 0;
 
             if (this.cursors.left.isDown) {
                 dx = -SHIP_SPEED;
-                moved = true;
             } else if (this.cursors.right.isDown) {
                 dx = SHIP_SPEED;
-                moved = true;
             }
 
             if (this.cursors.up.isDown) {
                 dy = -SHIP_SPEED;
-                moved = true;
             } else if (this.cursors.down.isDown) {
                 dy = SHIP_SPEED;
-                moved = true;
             }
+
+            const moved = dx !== 0 || dy !== 0;
 
             if (moved) {
                 this.ship.x += dx;
                 this.ship.y += dy;
                 this.updateStationPositions();
 
-                // Recompute player from ship-relative offset (offset stays constant)
                 this.player.x = this.ship.x + this.playerOffsetX;
                 this.player.y = this.ship.y + this.playerOffsetY;
 
@@ -377,6 +409,33 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    private createPlayerAnimations(textureKey: string, prefix: string) {
+        const gen = (start: number, end: number) =>
+            this.anims.generateFrameNumbers(textureKey, { start, end });
+
+        this.anims.create({ key: `${prefix}_idle_down`,    frames: gen(0, 2),   frameRate: 3, repeat: -1 });
+        this.anims.create({ key: `${prefix}_idle_up`,      frames: gen(3, 5),   frameRate: 3, repeat: -1 });
+        this.anims.create({ key: `${prefix}_idle_right`,   frames: gen(6, 8),   frameRate: 3, repeat: -1 });
+        this.anims.create({ key: `${prefix}_idle_left`,    frames: gen(9, 11),  frameRate: 3, repeat: -1 });
+        this.anims.create({ key: `${prefix}_walk_down`,    frames: gen(12, 14), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: `${prefix}_walk_up`,      frames: gen(15, 17), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: `${prefix}_walk_right`,   frames: gen(18, 20), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: `${prefix}_walk_left`,    frames: gen(21, 23), frameRate: 8, repeat: -1 });
+    }
+
+    private playPlayerAnimation(sprite: Phaser.GameObjects.Sprite, state: 'idle' | 'walk', direction: 'down' | 'up' | 'left' | 'right') {
+        const prefix = sprite.texture.key === 'player_1' ? 'player1' : 'player2';
+        sprite.play(`${prefix}_${state}_${direction}`, true);
+    }
+
+    private directionFromDelta(dx: number, dy: number): 'down' | 'up' | 'left' | 'right' | null {
+        if (dx < 0) return 'left';
+        if (dx > 0) return 'right';
+        if (dy < 0) return 'up';
+        if (dy > 0) return 'down';
+        return null;
+    }
+
     addPlayer(playerInfo: PlayerData) {
         this.playerOffsetX = playerInfo.x - this.ship.x;
         this.playerOffsetY = playerInfo.y - this.ship.y;
@@ -384,6 +443,7 @@ export default class MainScene extends Phaser.Scene {
         this.player = this.add.sprite(playerInfo.x, playerInfo.y, 'player_1', 0);
         this.player.setScale(1);
         this.player.setDepth(10);
+        this.playPlayerAnimation(this.player, 'idle', 'down');
         this.cameras.main.centerOn(playerInfo.x, playerInfo.y);
         this.cameras.main.startFollow(this.player);
     }
@@ -394,6 +454,7 @@ export default class MainScene extends Phaser.Scene {
         (otherPlayer as any).playerId = playerInfo.id;
         (otherPlayer as any).station = null;
         otherPlayer.setDepth(10);
+        this.playPlayerAnimation(otherPlayer, 'idle', 'down');
         this.otherPlayers.add(otherPlayer);
     }
 

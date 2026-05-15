@@ -1,4 +1,6 @@
 export type Station = 'rudder' | 'cannon_left' | 'cannon_right' | null;
+export type PlayerState = 'idle' | 'walk';
+export type PlayerDirection = 'down' | 'up' | 'left' | 'right';
 
 export interface PlayerData {
     id: string;
@@ -6,11 +8,15 @@ export interface PlayerData {
     y: number;
     color: number;
     station: Station;
+    state: PlayerState;
+    direction: PlayerDirection;
 }
 
 export interface PlayerMovementData {
     x: number;
     y: number;
+    state?: PlayerState;
+    direction?: PlayerDirection;
 }
 
 export interface StationChangeData {
