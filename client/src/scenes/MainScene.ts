@@ -11,9 +11,9 @@ interface StationDef {
 }
 
 const STATIONS: StationDef[] = [
-    { key: 'rudder',       offsetX: 0,    offsetY: 130, color: 0xffff00 },
-    { key: 'cannon_left',  offsetX: -70,  offsetY: 0,   color: 0xff4444 },
-    { key: 'cannon_right', offsetX: 70,   offsetY: 0,   color: 0x4444ff },
+    { key: 'rudder',       offsetX: 0,    offsetY: -70, color: 0xffff00 },
+    { key: 'cannon_left',  offsetX: -30,  offsetY: -10,   color: 0xff4444 },
+    { key: 'cannon_right', offsetX: 30,   offsetY: -10,   color: 0x4444ff },
 ];
 
 const CANNONBALL_SPEED = 8;
@@ -36,6 +36,10 @@ export default class MainScene extends Phaser.Scene {
     private keySpace!: Phaser.Input.Keyboard.Key;
     private cannonballs!: Phaser.GameObjects.Group;
 
+    private readonly DECK_ZOOM = 2.2;
+    private readonly RUDDER_ZOOM = 0.5;
+    private readonly CANNON_ZOOM = 0.6;
+
     private speed: number = PLAYER_SPEED;
 
     constructor() {
@@ -55,16 +59,56 @@ export default class MainScene extends Phaser.Scene {
     create() {
         console.log("MainScene created");
         this.cameras.main.setBackgroundColor('#1a1a2e');
-        this.cameras.main.setZoom(1.3);
+        this.cameras.main.setZoom(this.DECK_ZOOM);
+
+        const map = this.add.tilemap('map');
+        const waterTileset = map.addTilesetImage('Water and Island tiles', 'water_tiles');
+        const fogTileset = map.addTilesetImage('Fog', 'fog_tiles');
+        const shipTileset = map.addTilesetImage('Ships tiles', 'ship_tiles');
+
+        const allTilesets = [waterTileset!, fogTileset!, shipTileset!];
+
+        const marLayer = map.createLayer('mar', allTilesets);
+        const nevoaLayer = map.createLayer('nevoa', allTilesets);
+        const ilha1 = map.createLayer('ilha1', allTilesets);
+        const ilha1props = map.createLayer('ilha1props', allTilesets);
+        const ilha2 = map.createLayer('ilha2', allTilesets);
+        const ilha2props = map.createLayer('ilha2props', allTilesets);
+        const ilha3 = map.createLayer('ilha3', allTilesets);
+        const ilha3props = map.createLayer('ilha3props', allTilesets);
+        const ilha4 = map.createLayer('ilha4', allTilesets);
+        const ilha4props = map.createLayer('ilha4props', allTilesets);
+
+        [marLayer, nevoaLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props].forEach(l => l?.setDepth(0));
+
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+        // Ship
+        this.ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
+        this.ship.setScale(2);
+        this.ship.setDepth(5);
+
+        // Ship physics + island collision
+        this.physics.add.existing(this.ship);
+        const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
+        shipBody.allowGravity = false;
+
+        [ilha1, ilha2, ilha3, ilha4].forEach(layer => {
+            layer!.setCollisionByExclusion([-1]);
+            this.physics.add.collider(this.ship, layer!);
+        });
+        this.createStations();
+        this.createPlayerAnimations('player_1', 'player1');
+        this.createPlayerAnimations('player_2', 'player2');
+
+        this.otherPlayers = this.add.group();
+        this.cannonballs = this.add.group();
 
         this.socket = io('http://localhost:3000');
 
         this.socket.on('connect', () => {
             console.log("Connected to server via Socket.io");
         });
-
-        this.otherPlayers = this.add.group();
-        this.cannonballs = this.add.group();
 
         this.socket.on('currentPlayers', (players: { [id: string]: PlayerData }) => {
             Object.keys(players).forEach((id) => {
@@ -110,7 +154,6 @@ export default class MainScene extends Phaser.Scene {
             this.ship.y = data.y;
             this.updateStationPositions();
 
-            // Recompute local player position from ship-relative offset
             if (this.player && this.playerStation === null) {
                 this.player.x = this.ship.x + this.playerOffsetX;
                 this.player.y = this.ship.y + this.playerOffsetY;
@@ -147,69 +190,29 @@ export default class MainScene extends Phaser.Scene {
             this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
             this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         }
-
-        const map = this.add.tilemap('map');
-        const waterTileset = map.addTilesetImage('Water and Island tiles', 'water_tiles');
-        const fogTileset = map.addTilesetImage('Fog', 'fog_tiles');
-        const shipTileset = map.addTilesetImage('Ships tiles', 'ship_tiles');
-
-        const allTilesets = [waterTileset!, fogTileset!, shipTileset!];
-
-        const marLayer = map.createLayer('mar', allTilesets);
-        const nevoaLayer = map.createLayer('nevoa', allTilesets);
-        const ilha1 = map.createLayer('ilha1', allTilesets);
-        const ilha1props = map.createLayer('ilha1props', allTilesets);
-        const ilha2 = map.createLayer('ilha2', allTilesets);
-        const ilha2props = map.createLayer('ilha2props', allTilesets);
-        const ilha3 = map.createLayer('ilha3', allTilesets);
-        const ilha3props = map.createLayer('ilha3props', allTilesets);
-        const ilha4 = map.createLayer('ilha4', allTilesets);
-        const ilha4props = map.createLayer('ilha4props', allTilesets);
-
-        [marLayer, nevoaLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props].forEach(l => l?.setDepth(0));
-
-        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-
-        // Ship
-        this.ship = this.add.sprite(SHIP_X, SHIP_Y, 'ship');
-        this.ship.setScale(3);
-        this.ship.setDepth(5);
-
-        // Ship physics + island collision
-        this.physics.add.existing(this.ship);
-        const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
-        shipBody.allowGravity = false;
-
-        [ilha1, ilha2, ilha3, ilha4].forEach(layer => {
-            layer!.setCollisionByExclusion([-1]);
-            this.physics.add.collider(this.ship, layer!);
-        });
-        this.createStations();
-        this.createPlayerAnimations('player_1', 'player1');
-        this.createPlayerAnimations('player_2', 'player2');
     }
 
-    update() {
+    update(_time: number, delta: number) {
         if (!this.player) return;
 
-        // Move cannonballs
+        const dt = delta / 16.67;
+
         this.cannonballs.getChildren().forEach((ball: any) => {
-            ball.x += ball.vx;
-            ball.y += ball.vy;
-            ball.life += 1;
+            ball.x += ball.vx * dt;
+            ball.y += ball.vy * dt;
+            ball.life += dt;
             if (ball.life > CANNONBALL_LIFE) {
                 ball.destroy();
             }
         });
 
         if (this.playerStation !== null) {
-            this.handleStationOperation();
+            this.handleStationOperation(dt);
         } else {
-            this.handleDeckMovement();
+            this.handleDeckMovement(dt);
             this.checkStationProximity();
         }
 
-        // E key — enter/exit station
         if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
             if (this.playerStation === null) {
                 const nearby = this.findNearestStation();
@@ -227,7 +230,7 @@ export default class MainScene extends Phaser.Scene {
             const rect = this.add.rectangle(
                 this.ship.x + def.offsetX,
                 this.ship.y + def.offsetY,
-                40, 40, def.color, 0.5
+                30, 30, def.color, 0.5
             );
             rect.setDepth(6);
             (rect as any).stationKey = def.key;
@@ -251,7 +254,7 @@ export default class MainScene extends Phaser.Scene {
                 this.player.x, this.player.y,
                 rect.x, rect.y
             );
-            if (dist < 60) {
+            if (dist < 20) {
                 return (rect as any).stationKey as Station;
             }
         }
@@ -264,7 +267,7 @@ export default class MainScene extends Phaser.Scene {
                 this.player.x, this.player.y,
                 rect.x, rect.y
             );
-            rect.setAlpha(dist < 60 ? 0.8 : 0.3);
+            rect.setAlpha(dist < 20 ? 0.8 : 0.3);
         });
     }
 
@@ -295,38 +298,39 @@ export default class MainScene extends Phaser.Scene {
         this.lastEmittedState = 'idle';
 
         if (station === 'rudder') {
-            this.cameras.main.stopFollow();
-            this.cameras.main.setZoom(0.5);
-            this.cameras.main.centerOn(this.ship.x, this.ship.y);
+            this.cameras.main.setZoom(this.RUDDER_ZOOM);
+            this.cameras.main.setFollowOffset(0, 0);
+            this.cameras.main.startFollow(this.ship);
         } else {
-            this.cameras.main.stopFollow();
-            this.cameras.main.setZoom(0.6);
+            this.cameras.main.setZoom(this.CANNON_ZOOM);
             const side = station === 'cannon_left' ? -200 : 200;
-            this.cameras.main.centerOn(this.ship.x + side, this.ship.y);
+            this.cameras.main.setFollowOffset(side, 0);
+            this.cameras.main.startFollow(this.ship);
         }
     }
 
     private exitStation() {
         this.playerStation = null;
         this.socket.emit('playerStationChange', { station: null });
-        this.cameras.main.setZoom(1.3);
+        this.cameras.main.setFollowOffset(0, 0);
+        this.cameras.main.setZoom(this.DECK_ZOOM);
         this.cameras.main.startFollow(this.player);
     }
 
-    private handleDeckMovement() {
+    private handleDeckMovement(dt: number) {
         let dx = 0;
         let dy = 0;
 
         if (this.cursors.left.isDown) {
-            dx = -this.speed;
+            dx = -this.speed * dt;
         } else if (this.cursors.right.isDown) {
-            dx = this.speed;
+            dx = this.speed * dt;
         }
 
         if (this.cursors.up.isDown) {
-            dy = -this.speed;
+            dy = -this.speed * dt;
         } else if (this.cursors.down.isDown) {
-            dy = this.speed;
+            dy = this.speed * dt;
         }
 
         const moved = dx !== 0 || dy !== 0;
@@ -367,21 +371,21 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    private handleStationOperation() {
+    private handleStationOperation(dt: number) {
         if (this.playerStation === 'rudder') {
             let dx = 0;
             let dy = 0;
 
             if (this.cursors.left.isDown) {
-                dx = -SHIP_SPEED;
+                dx = -SHIP_SPEED * dt;
             } else if (this.cursors.right.isDown) {
-                dx = SHIP_SPEED;
+                dx = SHIP_SPEED * dt;
             }
 
             if (this.cursors.up.isDown) {
-                dy = -SHIP_SPEED;
+                dy = -SHIP_SPEED * dt;
             } else if (this.cursors.down.isDown) {
-                dy = SHIP_SPEED;
+                dy = SHIP_SPEED * dt;
             }
 
             const moved = dx !== 0 || dy !== 0;

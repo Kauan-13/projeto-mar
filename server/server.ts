@@ -2,13 +2,10 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
 import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData } from '../shared/types.ts';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED } from '../shared/types.ts';
 
 const app = express();
 const httpServer = createServer(app);
-const SHIP_X = 640;
-const SHIP_Y = 640;
-const PLAYER_SPEED = 3;
-const SHIP_SPEED = 4;
 
 // Allow CORS for development with Vite
 const io = new Server(httpServer, {
@@ -28,12 +25,10 @@ io.on('connection', (socket: Socket) => {
   console.log(`Player connected: ${socket.id}`);
 
   // Create new player on the ship deck
-  const playerCount = Object.keys(players).length;
-  const offsetX = playerCount === 0 ? -30 : 30;
   const newPlayer: PlayerData = {
     id: socket.id,
-    x: SHIP_X + offsetX,
-    y: SHIP_Y,
+    x: shipX,
+    y: shipY,
     color: Math.floor(Math.random() * 16777215),
     station: null,
     state: 'idle',
@@ -41,11 +36,11 @@ io.on('connection', (socket: Socket) => {
   };
   players[socket.id] = newPlayer;
 
-  // Send current players to the new player
-  socket.emit('currentPlayers', players);
-
   // Send current ship position
   socket.emit('shipMoved', { x: shipX, y: shipY, dx: 0, dy: 0 });
+
+  // Send current players to the new player
+  socket.emit('currentPlayers', players);
 
   // Broadcast to all other players that a new player has joined
   socket.broadcast.emit('playerJoined', newPlayer);
