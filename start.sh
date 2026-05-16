@@ -5,7 +5,7 @@ trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
 
 echo "Starting Express Server..."
 cd server
-npm start &
+node --no-warnings --experimental-strip-types server.ts &
 cd ..
 
 echo "Starting Vite Client..."
