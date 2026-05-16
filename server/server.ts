@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
 import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData } from '../shared/types.ts';
-import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED } from '../shared/types.ts';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED } from '../shared/types.ts';
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,6 +19,7 @@ const io = new Server(httpServer, {
 const players: Record<string, PlayerData> = {};
 let shipX = SHIP_X;
 let shipY = SHIP_Y;
+let shipAngle = 0;
 const GAME_SPEED = PLAYER_SPEED;
 
 io.on('connection', (socket: Socket) => {
@@ -37,7 +38,7 @@ io.on('connection', (socket: Socket) => {
   players[socket.id] = newPlayer;
 
   // Send current ship position
-  socket.emit('shipMoved', { x: shipX, y: shipY, dx: 0, dy: 0 });
+  socket.emit('shipMoved', { x: shipX, y: shipY, dx: 0, dy: 0, angle: shipAngle });
 
   // Send current players to the new player
   socket.emit('currentPlayers', players);
@@ -84,21 +85,34 @@ io.on('connection', (socket: Socket) => {
   socket.on('shipMove', (data: ShipMoveData) => {
     const dx = data.x - shipX;
     const dy = data.y - shipY;
+    const angleDelta = data.angle - shipAngle;
     const distanceSq = dx * dx + dy * dy;
     const maxDist = (SHIP_SPEED * 2) * (SHIP_SPEED * 2);
+    const maxAngle = SHIP_ROTATION_SPEED * 2;
 
-    if (distanceSq <= maxDist) {
+    if (distanceSq <= maxDist && Math.abs(angleDelta) <= maxAngle) {
       shipX = data.x;
       shipY = data.y;
+      shipAngle = data.angle;
 
-      // Move all players on the ship deck by the same delta
-      Object.keys(players).forEach(id => {
-        players[id].x += dx;
-        players[id].y += dy;
-      });
+      // Update player positions from client data (accounts for rotation offsets)
+      if (data.players) {
+        Object.keys(data.players).forEach(id => {
+          if (players[id]) {
+            players[id].x = data.players[id].x;
+            players[id].y = data.players[id].y;
+          }
+        });
+      } else {
+        // Fallback: just move by propulsion delta
+        Object.keys(players).forEach(id => {
+          players[id].x += dx;
+          players[id].y += dy;
+        });
+      }
 
-      // Broadcast ship position
-      io.emit('shipMoved', { x: shipX, y: shipY, dx, dy });
+      // Broadcast ship position and angle
+      io.emit('shipMoved', { x: shipX, y: shipY, dx, dy, angle: shipAngle });
 
       // Broadcast all player positions so remote clients stay in sync
       io.emit('playersMoved', players);

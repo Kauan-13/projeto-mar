@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { io, Socket } from 'socket.io-client';
 import type { PlayerData, Station, PlayerState, PlayerDirection } from '../../../shared/types';
-import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED } from '../../../shared/types';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_ACCELERATION, SHIP_FRICTION, SHIP_ROTATION_ACCEL, SHIP_ROTATION_FRICTION } from '../../../shared/types';
 
 interface StationDef {
     key: Station;
@@ -39,6 +39,9 @@ export default class MainScene extends Phaser.Scene {
     private readonly DECK_ZOOM = 2.2;
     private readonly RUDDER_ZOOM = 0.5;
     private readonly CANNON_ZOOM = 0.6;
+
+    private shipSpeed: number = 0;
+    private shipRotationSpeed: number = 0;
 
     private speed: number = PLAYER_SPEED;
 
@@ -149,15 +152,16 @@ export default class MainScene extends Phaser.Scene {
             }
         });
 
-        this.socket.on('shipMoved', (data: { x: number; y: number; dx: number; dy: number }) => {
+        this.socket.on('shipMoved', (data: { x: number; y: number; dx: number; dy: number; angle: number }) => {
             this.ship.x = data.x;
             this.ship.y = data.y;
+            this.ship.rotation = data.angle;
             this.updateStationPositions();
 
-            if (this.player && this.playerStation === null) {
-                this.player.x = this.ship.x + this.playerOffsetX;
-                this.player.y = this.ship.y + this.playerOffsetY;
-            }
+            this.otherPlayers.getChildren().forEach((other: any) => {
+                other.x += data.dx;
+                other.y += data.dy;
+            });
         });
 
         this.socket.on('playersMoved', (players: { [id: string]: PlayerData }) => {
@@ -165,6 +169,8 @@ export default class MainScene extends Phaser.Scene {
                 if (id === this.socket.id) {
                     if (this.player) {
                         this.player.setPosition(players[id].x, players[id].y);
+                        this.playerOffsetX = players[id].x - this.ship.x;
+                        this.playerOffsetY = players[id].y - this.ship.y;
                     }
                 } else {
                     this.otherPlayers.getChildren().forEach((otherPlayer: any) => {
@@ -239,11 +245,14 @@ export default class MainScene extends Phaser.Scene {
     }
 
     private updateStationPositions() {
+        const cos = Math.cos(this.ship.rotation);
+        const sin = Math.sin(this.ship.rotation);
         this.stationRects.forEach(r => {
             const def = STATIONS.find(s => s.key === (r as any).stationKey);
             if (def) {
-                r.x = this.ship.x + def.offsetX;
-                r.y = this.ship.y + def.offsetY;
+                r.x = this.ship.x + def.offsetX * cos - def.offsetY * sin;
+                r.y = this.ship.y + def.offsetX * sin + def.offsetY * cos;
+                r.setRotation(this.ship.rotation);
             }
         });
     }
@@ -315,6 +324,8 @@ export default class MainScene extends Phaser.Scene {
         this.cameras.main.setFollowOffset(0, 0);
         this.cameras.main.setZoom(this.DECK_ZOOM);
         this.cameras.main.startFollow(this.player);
+        this.shipSpeed = 0;
+        this.shipRotationSpeed = 0;
     }
 
     private handleDeckMovement(dt: number) {
@@ -373,24 +384,63 @@ export default class MainScene extends Phaser.Scene {
 
     private handleStationOperation(dt: number) {
         if (this.playerStation === 'rudder') {
-            let dx = 0;
-            let dy = 0;
-
-            if (this.cursors.left.isDown) {
-                dx = -SHIP_SPEED * dt;
-            } else if (this.cursors.right.isDown) {
-                dx = SHIP_SPEED * dt;
-            }
-
+            // Forward/backward acceleration
             if (this.cursors.up.isDown) {
-                dy = -SHIP_SPEED * dt;
+                this.shipSpeed += SHIP_ACCELERATION * dt;
             } else if (this.cursors.down.isDown) {
-                dy = SHIP_SPEED * dt;
+                this.shipSpeed -= SHIP_ACCELERATION * 0.75 * dt;
+            } else {
+                if (this.shipSpeed > 0) {
+                    this.shipSpeed = Math.max(0, this.shipSpeed - SHIP_FRICTION * dt);
+                } else if (this.shipSpeed < 0) {
+                    this.shipSpeed = Math.min(0, this.shipSpeed + SHIP_FRICTION * dt);
+                }
             }
+            this.shipSpeed = Phaser.Math.Clamp(this.shipSpeed, -SHIP_SPEED * 0.5, SHIP_SPEED);
 
-            const moved = dx !== 0 || dy !== 0;
+            // Rotation acceleration
+            if (this.cursors.left.isDown) {
+                this.shipRotationSpeed -= SHIP_ROTATION_ACCEL * dt;
+            } else if (this.cursors.right.isDown) {
+                this.shipRotationSpeed += SHIP_ROTATION_ACCEL * dt;
+            } else {
+                if (this.shipRotationSpeed > 0) {
+                    this.shipRotationSpeed = Math.max(0, this.shipRotationSpeed - SHIP_ROTATION_FRICTION * dt);
+                } else if (this.shipRotationSpeed < 0) {
+                    this.shipRotationSpeed = Math.min(0, this.shipRotationSpeed + SHIP_ROTATION_FRICTION * dt);
+                }
+            }
+            this.shipRotationSpeed = Phaser.Math.Clamp(this.shipRotationSpeed, -SHIP_ROTATION_SPEED, SHIP_ROTATION_SPEED);
+
+            const moved = this.shipSpeed !== 0 || this.shipRotationSpeed !== 0;
 
             if (moved) {
+                // Rotate all players with the ship
+                if (this.shipRotationSpeed !== 0) {
+                    const cos = Math.cos(this.shipRotationSpeed);
+                    const sin = Math.sin(this.shipRotationSpeed);
+
+                    const newOffX = this.playerOffsetX * cos - this.playerOffsetY * sin;
+                    const newOffY = this.playerOffsetX * sin + this.playerOffsetY * cos;
+                    this.playerOffsetX = newOffX;
+                    this.playerOffsetY = newOffY;
+
+                    this.otherPlayers.getChildren().forEach((other: any) => {
+                        const offX = other.x - this.ship.x;
+                        const offY = other.y - this.ship.y;
+                        other.x = this.ship.x + offX * cos - offY * sin;
+                        other.y = this.ship.y + offX * sin + offY * cos;
+                    });
+                }
+
+                this.ship.rotation += this.shipRotationSpeed;
+
+                const rad = this.ship.rotation;
+                const forwardX = -Math.sin(rad);
+                const forwardY = Math.cos(rad);
+                const dx = forwardX * this.shipSpeed;
+                const dy = forwardY * this.shipSpeed;
+
                 this.ship.x += dx;
                 this.ship.y += dy;
                 this.updateStationPositions();
@@ -403,7 +453,18 @@ export default class MainScene extends Phaser.Scene {
                     other.y += dy;
                 });
 
-                this.socket.emit('shipMove', { x: this.ship.x, y: this.ship.y });
+                // Send ship + all player positions so server stays in sync
+                const playerPositions: Record<string, { x: number; y: number }> = {};
+                playerPositions[this.socket.id] = { x: this.player.x, y: this.player.y };
+                this.otherPlayers.getChildren().forEach((other: any) => {
+                    playerPositions[other.playerId] = { x: other.x, y: other.y };
+                });
+
+                this.socket.emit('shipMove', {
+                    x: this.ship.x, y: this.ship.y,
+                    angle: this.ship.rotation,
+                    players: playerPositions
+                });
             }
         } else if (this.playerStation === 'cannon_left' || this.playerStation === 'cannon_right') {
             if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {

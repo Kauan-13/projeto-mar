@@ -5,8 +5,8 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx server.ts",
-    "dev": "tsx watch server.ts"
+    "start": "node --no-warnings --experimental-strip-types server.ts",
+    "dev": "node --no-warnings --experimental-strip-types --watch server.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
