@@ -42,12 +42,12 @@ Abra `http://localhost:5173` no navegador. Duas abas = dois jogadores.
 │   │   ├── main.ts           # Config do Phaser, registro de plugins (RexUI)
 │   │   ├── index.html        # Página HTML (game-container)
 │   │   ├── scenes/
-│   │   │   └── MainScene.ts  # Cena principal — input, socket, render
+│   │   │   └── MainScene.ts  # Cena principal — input, socket, estações, tanque, canhões, animações
 │   │   ├── entities/         # (stub) Entidades do jogo
 │   │   └── network/          # (stub) Gerenciador de rede
 │   └── public/assets/
 │       ├── maps/
-│       │   └── mapa.json         # Export do Tiled (30×20 tiles, infinito)
+│       │   └── mapa.json         # Export do Tiled (80×80 tiles, finito)
 │       ├── tilesets/
 │       │   ├── Water and Island tiles.png  # Tiles de água e ilhas (384×144)
 │       │   ├── Fog.png                    # Tiles de neblina (135×237)
@@ -96,6 +96,6 @@ Abra `http://localhost:5173` no navegador. Duas abas = dois jogadores.
 | Sprint | Descrição | Status |
 |--------|-----------|--------|
 | 1 | Esqueleto inicial — dois quadrados se movem e sincronizam | ✅ Concluído |
-| 2 | Plataforma do navio, estações (leme/canhões), câmera dinâmica | 🔜 Próximo |
+| 2 | Plataforma do navio, estações (leme/canhões), câmera dinâmica | 🔜 Em andamento (mapa, navio, sprites, estações, tanque feitos) |
 | 3 | Ondas, inimigos, disparo dos canhões | ⏳ Futuro |
 | 4 | Loja/upgrades, sprites finais | ⏳ Futuro |
