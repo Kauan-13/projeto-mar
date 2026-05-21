@@ -17,6 +17,7 @@ export default class MainScene extends Phaser.Scene {
 	private keyE!: Phaser.Input.Keyboard.Key;
 	private keySpace!: Phaser.Input.Keyboard.Key;
 	private lastEmittedState: 'walk' | 'idle' = 'idle';
+	private islandLayers!: Phaser.Tilemaps.TilemapLayer[];
 
 	constructor() {
 		super('MainScene');
@@ -61,14 +62,33 @@ export default class MainScene extends Phaser.Scene {
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
 		this.ship = new Ship(this);
+
+		this.islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
+		this.islandLayers.forEach(layer => {
+			if (!layer) return;
+			layer.setCollisionByProperty({ collides: true });
+
+			let collisionCount = 0;
+			if (layer.layer && layer.layer.data) {
+				for (const row of layer.layer.data) {
+					for (const tile of row) {
+						if (tile && tile.collides) collisionCount++;
+					}
+				}
+			}
+
+			console.log(`[Collision] Layer "${layer.layer.name}": ${collisionCount} tiles marked with collides=true`);
+			if (collisionCount === 0) {
+				console.warn(`[Collision] Falling back to setCollisionByExclusion for "${layer.layer.name}"`);
+				layer.setCollisionByExclusion([-1]);
+			}
+		});
+
 		this.playerManager = new PlayerManager(this, this.ship);
 		this.playerManager.createAnimations('player_1', 'player1');
 		this.playerManager.createAnimations('player_2', 'player2');
 
 		this.stationManager = new StationManager(this, this.ship, STATIONS);
-
-		const islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
-		this.ship.setupCollision(this, islandLayers, () => this.playerManager.localStation === 'rudder');
 
 		this.cannonballManager = new CannonballManager(this);
 
@@ -117,6 +137,7 @@ export default class MainScene extends Phaser.Scene {
 		if (station === 'rudder') {
 			const result = this.ship.helmUpdate(this.cursors, dt);
 			if (result.moved) {
+				this.ship.resolveIslandCollision(this.islandLayers);
 				this.stationManager.updatePositions();
 				this.playerManager.syncToShip(result.dx, result.dy, result.angleDelta);
 				this.network.emitShipMove(this.ship.x, this.ship.y, this.ship.rotation);
@@ -166,7 +187,9 @@ export default class MainScene extends Phaser.Scene {
 				this.network.emitStationChange(station);
 			}
 		} else {
-			this.ship.stopMovement();
+			if (this.playerManager.localStation === 'rudder') {
+				this.ship.stopMovement();
+			}
 			this.playerManager.exitStation();
 			this.applyCamera(this.stationManager.getDeckCameraConfig(this.playerManager.sprite));
 			this.network.emitStationChange(null);
