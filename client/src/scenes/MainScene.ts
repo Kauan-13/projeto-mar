@@ -35,6 +35,9 @@ export default class MainScene extends Phaser.Scene {
     private keyE!: Phaser.Input.Keyboard.Key;
     private keySpace!: Phaser.Input.Keyboard.Key;
     private cannonballs!: Phaser.GameObjects.Group;
+    private prevShipX: number = SHIP_X;
+    private prevShipY: number = SHIP_Y;
+    private shipColliders: Phaser.Physics.Arcade.Collider[] = [];
 
     private readonly DECK_ZOOM = 2.2;
     private readonly RUDDER_ZOOM = 0.5;
@@ -91,14 +94,47 @@ export default class MainScene extends Phaser.Scene {
         this.ship.setScale(2);
         this.ship.setDepth(5);
 
+        this.prevShipX = this.ship.x;
+        this.prevShipY = this.ship.y;
+
         // Ship physics + island collision
         this.physics.add.existing(this.ship);
         const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
         shipBody.allowGravity = false;
+        shipBody.setSize(46, 105);
+        shipBody.setOffset(0, 5);
 
-        [ilha1, ilha2, ilha3, ilha4].forEach(layer => {
-            layer!.setCollisionByExclusion([-1]);
-            this.physics.add.collider(this.ship, layer!);
+        const islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
+        islandLayers.forEach(layer => {
+            if (!layer) {
+                console.warn('[Collision] Layer is null, skipping');
+                return;
+            }
+
+            console.log(`[Collision] Layer "${layer.layer.name}": setting up...`);
+
+            layer.setCollisionByProperty({ collides: true });
+
+            let collisionCount = 0;
+            if (layer.layer && layer.layer.data) {
+                for (const row of layer.layer.data) {
+                    for (const tile of row) {
+                        if (tile && tile.collides) collisionCount++;
+                    }
+                }
+            }
+
+            console.log(`[Collision] Layer "${layer.layer.name}": ${collisionCount} tiles marked`);
+
+            if (collisionCount === 0) {
+                console.warn(`[Collision] Falling back to setCollisionByExclusion for "${layer.layer.name}"`);
+                layer.setCollisionByExclusion([-1]);
+            }
+
+            const collider = this.physics.add.collider(this.ship, layer, undefined, () => {
+                return this.playerStation === 'rudder';
+            });
+            this.shipColliders.push(collider);
         });
         this.createStations();
         this.createPlayerAnimations('player_1', 'player1');
@@ -153,8 +189,12 @@ export default class MainScene extends Phaser.Scene {
         });
 
         this.socket.on('shipMoved', (data: { x: number; y: number; dx: number; dy: number; angle: number }) => {
+            if (this.playerStation === 'rudder') return;
+
             this.ship.x = data.x;
             this.ship.y = data.y;
+            this.prevShipX = data.x;
+            this.prevShipY = data.y;
             this.ship.rotation = data.angle;
             this.updateStationPositions();
 
@@ -166,20 +206,13 @@ export default class MainScene extends Phaser.Scene {
 
         this.socket.on('playersMoved', (players: { [id: string]: PlayerData }) => {
             Object.keys(players).forEach((id) => {
-                if (id === this.socket.id) {
-                    if (this.player) {
-                        this.player.setPosition(players[id].x, players[id].y);
-                        this.playerOffsetX = players[id].x - this.ship.x;
-                        this.playerOffsetY = players[id].y - this.ship.y;
+                if (id === this.socket.id) return;
+                this.otherPlayers.getChildren().forEach((otherPlayer: any) => {
+                    if (id === otherPlayer.playerId) {
+                        otherPlayer.setPosition(players[id].x, players[id].y);
+                        this.playPlayerAnimation(otherPlayer, players[id].state, players[id].direction);
                     }
-                } else {
-                    this.otherPlayers.getChildren().forEach((otherPlayer: any) => {
-                        if (id === otherPlayer.playerId) {
-                            otherPlayer.setPosition(players[id].x, players[id].y);
-                            this.playPlayerAnimation(otherPlayer, players[id].state, players[id].direction);
-                        }
-                    });
-                }
+                });
             });
         });
 
@@ -319,6 +352,10 @@ export default class MainScene extends Phaser.Scene {
     }
 
     private exitStation() {
+        if (this.playerStation === 'rudder') {
+            const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
+            shipBody.setVelocity(0, 0);
+        }
         this.playerStation = null;
         this.socket.emit('playerStationChange', { station: null });
         this.cameras.main.setFollowOffset(0, 0);
@@ -382,7 +419,7 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    private handleStationOperation(dt: number) {
+    private handleStationOperation(_dt: number) {
         if (this.playerStation === 'rudder') {
             // Forward/backward acceleration
             if (this.cursors.up.isDown) {
@@ -448,6 +485,9 @@ export default class MainScene extends Phaser.Scene {
                 this.player.x = this.ship.x + this.playerOffsetX;
                 this.player.y = this.ship.y + this.playerOffsetY;
 
+            const dx = this.ship.x - this.prevShipX;
+            const dy = this.ship.y - this.prevShipY;
+            if (dx !== 0 || dy !== 0) {
                 this.otherPlayers.getChildren().forEach((other: any) => {
                     other.x += dx;
                     other.y += dy;
@@ -466,6 +506,9 @@ export default class MainScene extends Phaser.Scene {
                     players: playerPositions
                 });
             }
+
+            this.prevShipX = this.ship.x;
+            this.prevShipY = this.ship.y;
         } else if (this.playerStation === 'cannon_left' || this.playerStation === 'cannon_right') {
             if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
                 const direction = this.playerStation === 'cannon_left' ? -1 : 1;

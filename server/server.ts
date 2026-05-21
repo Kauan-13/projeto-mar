@@ -56,7 +56,7 @@ io.on('connection', (socket: Socket) => {
       const distanceSq = dx * dx + dy * dy;
 
       // Allow a reasonable max distance per tick (GAME_SPEED + leniency)
-      const maxDist = (GAME_SPEED * 2) * (GAME_SPEED * 2);
+      const maxDist = (SHIP_SPEED + GAME_SPEED * 2) * (SHIP_SPEED + GAME_SPEED * 2);
 
       if (distanceSq <= maxDist) {
         player.x = movementData.x;
