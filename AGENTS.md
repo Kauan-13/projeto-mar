@@ -6,6 +6,7 @@
 
 ## Project Context
 - Full design doc: `docs/Game Design Document Template - Kauan e Kauê.md`
+- GitHub issues + milestones track current tasks: `gh issue list`
 - Two pirates cooperatively pilot a ship with stations (helm, cannons), survive waves of enemies.
 - Mobile-first web (touch controls, `Phaser.Scale.FIT`).
 - Prototype deadline: < 4 weeks.
@@ -36,6 +37,8 @@
 ### Server (`server/server.ts`)
 - In-memory state only (`Record<string, PlayerData>`). Restart = state gone. Acceptable.
 - Movement validation: distance check per message. If delta exceeds `(GAME_SPEED * 2)^2`, server rejects and forces client back.
+- Tracks ship position (`shipX`, `shipY`) and rotation (`shipAngle`). Ship movement includes angle delta validation.
+- Receives player positions alongside `shipMove` to keep all clients in sync during rotation.
 - No tick timer yet — event-driven via socket messages.
 - Future: collision via 2D array (0=water, 1=obstacle). Never parse Tiled JSON on server.
 
@@ -43,9 +46,9 @@
 - Client-side prediction: move immediately, emit position to server.
 - Other players currently snap to position (lerp/interpolation planned).
 - Arrow keys work. RexUI Virtual Joystick plugin is **installed and registered** but not wired into MainScene yet.
-- **Map:** Tiled finite map (80×80 tiles, 1280×1280px), loaded via `tilemapTiledJSON`. 5 layers (`mar`, `ilhas`, `aguas-rasas`, `props`, `nevoa`), 3 tilesets. Camera bounds set to map pixel dimensions.
-- **Ship:** `basic_ship.png` at scale 3, depth 5, at map center (640, 640). Currently static — station interaction not yet implemented.
-- **Player sprites:** Spritesheets (48×128, 16×16 frames). Frame 0 only for now. Local player = `player_1`, remote players = `player_2`.
+- **Map:** Tiled finite map (80×80 tiles, 1280×1280px), loaded via `tilemapTiledJSON`. 10 layers (`mar`, `nevoa`, `ilha1`–`ilha4` + `ilhaXprops` each), 3 tilesets. Camera bounds set to map pixel dimensions. Ship-island collisions via Arcade Physics.
+- **Ship:** `basic_ship.png` at scale 2, depth 5, at map center (640, 640). Tank controls (L/R rotates, U/D propels forward/backward at ½ speed). Movement has inertia — accelerates and coasts with friction. Station hitboxes (rudder, port cannon, starboard cannon) rotate with the ship via `cos/sin` offset math. Players are dragged alongside the ship during rotation (offset rotates). Ship angle synced via server.
+- **Player sprites:** Spritesheets (48×128, 16×16 frames). 24-frame animations: 4 directions × 2 states (idle/walk) × 3 frames each. Animation key convention: `player{1|2}_{idle|walk}_{down|up|left|right}`. State and direction synced via server for remote players.
 
 ### RexUI Virtual Joystick
 - Installed: `phaser3-rex-plugins` (npm dep in client).
@@ -69,7 +72,7 @@ public/assets/
 
 ### TypeScript
 - `tsconfig.base.json` → `client/tsconfig.json` and `server/tsconfig.json`.
-- Server runs via `tsx server.ts`, no `tsc` build step.
+- Server runs via `node --experimental-strip-types` (no `tsc` build step).
 - New shared interfaces → `shared/types.ts`.
 - **Quirk:** Server value imports from `shared/` need `.ts` extension (`import { SHIP_X } from '../shared/types.ts'`). `import type` also uses `.ts`.
 
@@ -78,7 +81,7 @@ public/assets/
 | # | Milestone | Status |
 |---|-----------|--------|
 | 1 | Walking skeleton: squares move + sync via Socket.io | Done |
-| 2 | Ship platform, stations (helm/cannons), camera transitions | In progress (map, ship, sprites done) |
+| 2 | Ship platform, stations (helm/cannons), camera transitions | In progress (map, ship, sprites, stations, tank controls done) |
 | 3 | Waves, chaser enemies, cannon firing | Later |
 | 4 | Shop/upgrades UI, sprite replacement | Later |
 
@@ -89,6 +92,8 @@ public/assets/
 - **Audio:** Must implement "Tap to Start" screen before any `sound.add()` call (browser autoplay policy).
 - **Surgical edits:** Touch only what you must. Don't refactor adjacent code.
 - **Prefer simple collisions:** AABB or circles over rotated bounding boxes.
+- **Animation key convention:** `player{1|2}_{idle|walk}_{down|up|left|right}`. Spritesheets have 24 frames (4 dirs × 2 states × 3 frames each).
+- **Ship rotation:** Station positions are computed via `cos/sin(angle) * offset`. Player offset rotates with the ship during turns — both local and remote players are dragged alongside.
 
 ## Documentation References
 
