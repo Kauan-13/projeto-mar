@@ -15,9 +15,10 @@ const config: Phaser.Types.Core.GameConfig = {
         height: 600
     },
     physics: {
-        default: 'arcade',
-        arcade: {
-            debug: false
+        default: 'matter',
+        matter: {
+            gravity: { y: 0 },
+            debug: true
         }
     },
     plugins: {

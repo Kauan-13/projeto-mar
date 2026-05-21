@@ -7,6 +7,9 @@ import type { CameraConfig } from '../systems/StationManager';
 import CannonballManager from '../entities/CannonballManager';
 import NetworkManager from '../network/NetworkManager';
 
+const ISLAND_CATEGORY = 0x0002;
+const SHIP_CATEGORY = 0x0001;
+
 export default class MainScene extends Phaser.Scene {
 	private ship!: Ship;
 	private playerManager!: PlayerManager;
@@ -17,7 +20,9 @@ export default class MainScene extends Phaser.Scene {
 	private keyE!: Phaser.Input.Keyboard.Key;
 	private keySpace!: Phaser.Input.Keyboard.Key;
 	private lastEmittedState: 'walk' | 'idle' = 'idle';
-	private islandLayers!: Phaser.Tilemaps.TilemapLayer[];
+	private prevShipX!: number;
+	private prevShipY!: number;
+	private prevShipAngle!: number;
 
 	constructor() {
 		super('MainScene');
@@ -63,9 +68,14 @@ export default class MainScene extends Phaser.Scene {
 
 		this.ship = new Ship(this);
 
-		this.islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
-		this.islandLayers.forEach(layer => {
-			if (!layer) return;
+		const islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
+		islandLayers.forEach(layer => {
+			if (!layer) {
+				console.warn('[Collision] Layer is null, skipping');
+				return;
+			}
+
+			console.log(`[Collision] Layer "${layer.layer.name}": setting up...`);
 			layer.setCollisionByProperty({ collides: true });
 
 			let collisionCount = 0;
@@ -82,6 +92,13 @@ export default class MainScene extends Phaser.Scene {
 				console.warn(`[Collision] Falling back to setCollisionByExclusion for "${layer.layer.name}"`);
 				layer.setCollisionByExclusion([-1]);
 			}
+
+			console.log(`[Collision] Converting layer "${layer.layer.name}" to Matter bodies...`);
+			this.matter.world.convertTilemapLayer(layer, {
+				label: 'island',
+				isStatic: true,
+				collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
+			});
 		});
 
 		this.playerManager = new PlayerManager(this, this.ship);
@@ -102,6 +119,10 @@ export default class MainScene extends Phaser.Scene {
 			},
 		);
 
+		this.prevShipX = this.ship.x;
+		this.prevShipY = this.ship.y;
+		this.prevShipAngle = this.ship.rotation;
+
 		if (this.input.keyboard) {
 			this.cursors = this.input.keyboard.createCursorKeys();
 			this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -111,6 +132,23 @@ export default class MainScene extends Phaser.Scene {
 
 	update(_time: number, delta: number) {
 		const dt = delta / 16.67;
+
+		const shipDx = this.ship.x - this.prevShipX;
+		const shipDy = this.ship.y - this.prevShipY;
+		const shipAngleDelta = this.ship.rotation - this.prevShipAngle;
+
+		if (shipDx !== 0 || shipDy !== 0 || shipAngleDelta !== 0) {
+			this.stationManager.updatePositions();
+			this.playerManager.syncToShip(shipDx, shipDy, shipAngleDelta);
+
+			if (this.playerManager.localStation === 'rudder') {
+				this.network.emitShipMove(this.ship.x, this.ship.y, this.ship.rotation);
+			}
+		}
+
+		this.prevShipX = this.ship.x;
+		this.prevShipY = this.ship.y;
+		this.prevShipAngle = this.ship.rotation;
 
 		this.cannonballManager.update(dt);
 
@@ -135,13 +173,7 @@ export default class MainScene extends Phaser.Scene {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
-			const result = this.ship.helmUpdate(this.cursors, dt);
-			if (result.moved) {
-				this.ship.resolveIslandCollision(this.islandLayers);
-				this.stationManager.updatePositions();
-				this.playerManager.syncToShip(result.dx, result.dy, result.angleDelta);
-				this.network.emitShipMove(this.ship.x, this.ship.y, this.ship.rotation);
-			}
+			this.ship.helmUpdate(this.cursors, dt);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
@@ -185,9 +217,13 @@ export default class MainScene extends Phaser.Scene {
 				this.playerManager.enterStation(station, worldPos.x, worldPos.y);
 				this.applyCamera(this.stationManager.getCameraConfig(station, this.playerManager.sprite));
 				this.network.emitStationChange(station);
+				if (station === 'rudder') {
+					this.ship.setCollisionEnabled(true);
+				}
 			}
 		} else {
 			if (this.playerManager.localStation === 'rudder') {
+				this.ship.setCollisionEnabled(false);
 				this.ship.stopMovement();
 			}
 			this.playerManager.exitStation();

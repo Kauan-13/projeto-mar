@@ -61,6 +61,8 @@ export default class NetworkManager {
 			ship.sprite.x = data.x;
 			ship.sprite.y = data.y;
 			ship.sprite.rotation = data.angle;
+			ship.sprite.setVelocity(0, 0);
+			ship.sprite.setAngularVelocity(0);
 			stationManager.updatePositions();
 
 			const angleDelta = ship.rotation - prevAngle;
