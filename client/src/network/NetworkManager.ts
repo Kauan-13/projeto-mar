@@ -68,8 +68,6 @@ export default class NetworkManager {
 
 			const angleDelta = ship.rotation - prevAngle;
 			if (angleDelta !== 0) {
-				playerManager.rotateLocalOffset(angleDelta);
-
 				const cos = Math.cos(angleDelta);
 				const sin = Math.sin(angleDelta);
 

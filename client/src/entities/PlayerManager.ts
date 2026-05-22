@@ -35,8 +35,9 @@ export default class PlayerManager {
 	}
 
 	createLocalPlayer(x: number, y: number): void {
-		this.offsetX = x - this.ship.x;
-		this.offsetY = y - this.ship.y;
+		const local = this.worldToLocal(x, y);
+		this.offsetX = local.x;
+		this.offsetY = local.y;
 
 		this.sprite = this.scene.add.sprite(x, y, 'player_1', 0);
 		this.sprite.setScale(1);
@@ -80,32 +81,37 @@ export default class PlayerManager {
 	}
 
 	moveOnDeck(cursors: Phaser.Types.Input.Keyboard.CursorKeys, dt: number): boolean {
-		let dx = 0;
-		let dy = 0;
+		let worldDx = 0;
+		let worldDy = 0;
 		const speed = PLAYER_SPEED;
 
 		if (cursors.left.isDown) {
-			dx = -speed * dt;
+			worldDx = -speed * dt;
 		} else if (cursors.right.isDown) {
-			dx = speed * dt;
+			worldDx = speed * dt;
 		}
 
 		if (cursors.up.isDown) {
-			dy = -speed * dt;
+			worldDy = -speed * dt;
 		} else if (cursors.down.isDown) {
-			dy = speed * dt;
+			worldDy = speed * dt;
 		}
 
-		if (dx === 0 && dy === 0) {
+		if (worldDx === 0 && worldDy === 0) {
 			this.playAnim('idle', this.direction);
 			return false;
 		}
 
-		this.direction = this.getDirection(dx, dy);
+		this.direction = this.getDirection(worldDx, worldDy);
 		this.playAnim('walk', this.direction);
 
-		this.offsetX += dx;
-		this.offsetY += dy;
+		const cos = Math.cos(this.ship.rotation);
+		const sin = Math.sin(this.ship.rotation);
+		const localDx = worldDx * cos + worldDy * sin;
+		const localDy = -worldDx * sin + worldDy * cos;
+
+		this.offsetX += localDx;
+		this.offsetY += localDy;
 
 		const DECK_MARGIN_Y = 50;
 		const maxOffX = (this.ship.sprite.displayWidth - this.sprite.displayWidth) / 2;
@@ -113,8 +119,9 @@ export default class PlayerManager {
 		this.offsetX = Phaser.Math.Clamp(this.offsetX, -maxOffX, maxOffX);
 		this.offsetY = Phaser.Math.Clamp(this.offsetY, -maxOffY, maxOffY);
 
-		this.sprite.x = this.ship.x + this.offsetX;
-		this.sprite.y = this.ship.y + this.offsetY;
+		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
+		this.sprite.x = worldPos.x;
+		this.sprite.y = worldPos.y;
 
 		return true;
 	}
@@ -124,13 +131,6 @@ export default class PlayerManager {
 			const cos = Math.cos(angleDelta);
 			const sin = Math.sin(angleDelta);
 
-			// Rotate local player offset
-			const newOffX = this.offsetX * cos - this.offsetY * sin;
-			const newOffY = this.offsetX * sin + this.offsetY * cos;
-			this.offsetX = newOffX;
-			this.offsetY = newOffY;
-
-			// Rotate remote players around ship center
 			const shipX = this.ship.x;
 			const shipY = this.ship.y;
 			this.group.getChildren().forEach((other: any) => {
@@ -148,14 +148,16 @@ export default class PlayerManager {
 			});
 		}
 
-		this.sprite.x = this.ship.x + this.offsetX;
-		this.sprite.y = this.ship.y + this.offsetY;
+		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
+		this.sprite.x = worldPos.x;
+		this.sprite.y = worldPos.y;
 	}
 
 	enterStation(station: Station, worldX: number, worldY: number): void {
 		this.localStation = station;
-		this.offsetX = worldX - this.ship.x;
-		this.offsetY = worldY - this.ship.y;
+		const local = this.worldToLocal(worldX, worldY);
+		this.offsetX = local.x;
+		this.offsetY = local.y;
 		this.sprite.setPosition(worldX, worldY);
 
 		if (station === 'cannon_left') {
@@ -173,24 +175,17 @@ export default class PlayerManager {
 	}
 
 	snapPosition(x: number, y: number): void {
-		this.offsetX = x - this.ship.x;
-		this.offsetY = y - this.ship.y;
+		const local = this.worldToLocal(x, y);
+		this.offsetX = local.x;
+		this.offsetY = local.y;
 		this.sprite.setPosition(x, y);
-	}
-
-	rotateLocalOffset(angleDelta: number): void {
-		const cos = Math.cos(angleDelta);
-		const sin = Math.sin(angleDelta);
-		const newOffX = this.offsetX * cos - this.offsetY * sin;
-		const newOffY = this.offsetX * sin + this.offsetY * cos;
-		this.offsetX = newOffX;
-		this.offsetY = newOffY;
 	}
 
 	recalcLocalPosition(): void {
 		if (!this.sprite) return;
-		this.sprite.x = this.ship.x + this.offsetX;
-		this.sprite.y = this.ship.y + this.offsetY;
+		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
+		this.sprite.x = worldPos.x;
+		this.sprite.y = worldPos.y;
 	}
 
 	getPlayerWorldPositions(localId: string): Record<string, { x: number; y: number }> {
@@ -216,5 +211,25 @@ export default class PlayerManager {
 			return dx < 0 ? 'left' : 'right';
 		}
 		return dy < 0 ? 'up' : 'down';
+	}
+
+	private localToWorld(localX: number, localY: number): { x: number; y: number } {
+		const cos = Math.cos(this.ship.rotation);
+		const sin = Math.sin(this.ship.rotation);
+		return {
+			x: this.ship.x + localX * cos - localY * sin,
+			y: this.ship.y + localX * sin + localY * cos,
+		};
+	}
+
+	private worldToLocal(worldX: number, worldY: number): { x: number; y: number } {
+		const cos = Math.cos(this.ship.rotation);
+		const sin = Math.sin(this.ship.rotation);
+		const dx = worldX - this.ship.x;
+		const dy = worldY - this.ship.y;
+		return {
+			x: dx * cos + dy * sin,
+			y: -dx * sin + dy * cos,
+		};
 	}
 }
