@@ -176,7 +176,7 @@ export default class MainScene extends Phaser.Scene {
 		if (!this.playerManager.sprite) return;
 
 		if (this.playerManager.localStation !== null) {
-			this.handleStationOperation(dt, delta);
+			this.handleStationOperation();
 		} else {
 			this.handleDeckMovement(dt);
 			this.stationManager.highlightProximity(
@@ -190,11 +190,11 @@ export default class MainScene extends Phaser.Scene {
 		}
 	}
 
-	private handleStationOperation(dt: number, delta: number) {
+	private handleStationOperation() {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
-			this.ship.helmUpdate(this.cursors, dt, delta);
+			this.ship.helmUpdate(this.cursors);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
