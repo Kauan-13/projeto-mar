@@ -49,7 +49,7 @@ export default class Ship {
 	get speed(): number { return this.shipSpeed; }
 	get angularSpeed(): number { return this.shipRotationSpeed; }
 
-	helmUpdate(cursors: Phaser.Types.Input.Keyboard.CursorKeys, dt: number): void {
+		helmUpdate(cursors: Phaser.Types.Input.Keyboard.CursorKeys, dt: number, delta: number): void {
 		if (cursors.up.isDown) {
 			this.shipSpeed += SHIP_ACCELERATION * dt;
 		} else if (cursors.down.isDown) {
@@ -76,8 +76,8 @@ export default class Ship {
 		}
 		this.shipRotationSpeed = Phaser.Math.Clamp(this.shipRotationSpeed, -SHIP_ROTATION_SPEED, SHIP_ROTATION_SPEED);
 
-		const speedPPS = this.shipSpeed * 60;
-		const rotPPS = this.shipRotationSpeed * 60;
+		const speedPPS = this.shipSpeed * (1000 / delta);
+		const rotPPS = this.shipRotationSpeed * (1000 / delta);
 
 		const rad = this.sprite.rotation;
 		const forwardX = -Math.sin(rad);

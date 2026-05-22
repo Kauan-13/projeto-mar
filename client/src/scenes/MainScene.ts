@@ -194,7 +194,7 @@ export default class MainScene extends Phaser.Scene {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
-			this.ship.helmUpdate(this.cursors, dt);
+			this.ship.helmUpdate(this.cursors, dt, delta);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
