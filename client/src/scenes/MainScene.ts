@@ -176,7 +176,7 @@ export default class MainScene extends Phaser.Scene {
 		if (!this.playerManager.sprite) return;
 
 		if (this.playerManager.localStation !== null) {
-			this.handleStationOperation(dt);
+			this.handleStationOperation(dt, delta);
 		} else {
 			this.handleDeckMovement(dt);
 			this.stationManager.highlightProximity(
@@ -190,7 +190,7 @@ export default class MainScene extends Phaser.Scene {
 		}
 	}
 
-	private handleStationOperation(dt: number) {
+	private handleStationOperation(dt: number, delta: number) {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
