@@ -66,9 +66,17 @@ export default class MainScene extends Phaser.Scene {
 
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-		this.ship = new Ship(this);
+		console.log('[DEBUG] creating Ship...');
+		try {
+			this.ship = new Ship(this);
+			console.log('[DEBUG] Ship OK, x=', this.ship.x);
+		} catch (e) {
+			console.error('[DEBUG] Ship FAILED:', e);
+		}
 
+		console.log('[DEBUG] setting up island collision...');
 		const islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
+		try {
 		islandLayers.forEach(layer => {
 			if (!layer) {
 				console.warn('[Collision] Layer is null, skipping');
@@ -94,21 +102,33 @@ export default class MainScene extends Phaser.Scene {
 			}
 
 			console.log(`[Collision] Converting layer "${layer.layer.name}" to Matter bodies...`);
-			this.matter.world.convertTilemapLayer(layer, {
-				label: 'island',
-				isStatic: true,
-				collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
-			});
+			try {
+				this.matter.world.convertTilemapLayer(layer, {
+					label: 'island',
+					isStatic: true,
+					collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
+				});
+				console.log(`[Collision] Layer "${layer.layer.name}" converted OK`);
+			} catch (e) {
+				console.error(`[Collision] Layer "${layer.layer.name}" FAILED:`, e);
+			}
 		});
+		} catch (e) {
+			console.error('[DEBUG] island setup FAILED:', e);
+		}
 
+		console.log('[DEBUG] creating PlayerManager...');
 		this.playerManager = new PlayerManager(this, this.ship);
 		this.playerManager.createAnimations('player_1', 'player1');
 		this.playerManager.createAnimations('player_2', 'player2');
 
+		console.log('[DEBUG] creating StationManager...');
 		this.stationManager = new StationManager(this, this.ship, STATIONS);
 
+		console.log('[DEBUG] creating CannonballManager...');
 		this.cannonballManager = new CannonballManager(this);
 
+		console.log('[DEBUG] creating NetworkManager...');
 		this.network = new NetworkManager(
 			this.ship,
 			this.playerManager,
@@ -123,6 +143,7 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipY = this.ship.y;
 		this.prevShipAngle = this.ship.rotation;
 
+		console.log('[DEBUG] create() DONE');
 		if (this.input.keyboard) {
 			this.cursors = this.input.keyboard.createCursorKeys();
 			this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);

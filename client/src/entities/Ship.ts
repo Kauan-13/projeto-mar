@@ -13,17 +13,34 @@ export default class Ship {
 	private shipRotationSpeed: number = 0;
 
 	constructor(scene: Phaser.Scene) {
-		this.sprite = scene.matter.add.sprite(SHIP_X, SHIP_Y, 'ship', undefined, {
-			shape: { type: 'rectangle', width: 46, height: 105 },
-			collisionFilter: { category: SHIP_CATEGORY, mask: 0x0000, group: 0 },
-			label: 'ship',
-			frictionAir: 0,
-			friction: 0,
-			frictionStatic: 0,
-			restitution: 0,
-		});
+		console.log('[Ship] constructor start');
+		console.log('[Ship] scene.matter exists:', !!scene.matter);
+		console.log('[Ship] scene.matter.add exists:', !!(scene.matter && scene.matter.add));
+
+		try {
+			this.sprite = scene.matter.add.sprite(SHIP_X, SHIP_Y, 'ship', undefined, {
+				shape: { type: 'rectangle', width: 46, height: 105 },
+				collisionFilter: { category: SHIP_CATEGORY, mask: 0x0000, group: 0 },
+				label: 'ship',
+				frictionAir: 0,
+				friction: 0,
+				frictionStatic: 0,
+				restitution: 0,
+			});
+			console.log('[Ship] sprite created:', !!this.sprite);
+			console.log('[Ship] sprite.x:', this.sprite.x, 'sprite.y:', this.sprite.y);
+			console.log('[Ship] sprite.visible:', this.sprite.visible);
+			console.log('[Ship] sprite.texture:', this.sprite.texture ? this.sprite.texture.key : 'NONE');
+			console.log('[Ship] sprite.body:', !!this.sprite.body);
+		} catch (e) {
+			console.error('[Ship] scene.matter.add.sprite FAILED:', e);
+			this.sprite = scene.add.sprite(SHIP_X, SHIP_Y, 'ship') as any;
+			console.log('[Ship] fallback sprite created');
+		}
+
 		this.sprite.setScale(2);
 		this.sprite.setDepth(5);
+		console.log('[Ship] constructor end');
 	}
 
 	get x(): number { return this.sprite.x; }

@@ -22,6 +22,7 @@ export default class NetworkManager {
 		});
 
 		this.socket.on('currentPlayers', (players: { [id: string]: PlayerData }) => {
+			console.log('[Network] currentPlayers received, count:', Object.keys(players).length);
 			Object.keys(players).forEach((id) => {
 				if (players[id].id === this.socket.id) {
 					playerManager.createLocalPlayer(players[id].x, players[id].y);
