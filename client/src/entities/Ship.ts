@@ -20,7 +20,7 @@ export default class Ship {
 		});
 		this.sprite.setScale(2);
 		this.sprite.setDepth(5);
-		this.sprite.setMass(100);
+		this.sprite.setMass(1);
 		this.sprite.setFrictionAir(0.05);
 	}
 
@@ -29,10 +29,14 @@ export default class Ship {
 	get rotation(): number { return this.sprite.rotation; }
 
 	helmUpdate(cursors: Phaser.Types.Input.Keyboard.CursorKeys): void {
+		const rad = this.sprite.rotation;
+		const forwardX = -Math.sin(rad);
+		const forwardY = Math.cos(rad);
+
 		if (cursors.up.isDown) {
-			this.sprite.thrust(0.01);
+			this.sprite.applyForce({ x: forwardX * 0.01, y: forwardY * 0.01 });
 		} else if (cursors.down.isDown) {
-			this.sprite.thrustBack(0.0075);
+			this.sprite.applyForce({ x: -forwardX * 0.0075, y: -forwardY * 0.0075 });
 		}
 
 		if (cursors.left.isDown) {
