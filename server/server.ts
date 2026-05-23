@@ -85,7 +85,8 @@ io.on('connection', (socket: Socket) => {
   socket.on('shipMove', (data: ShipMoveData) => {
     const dx = data.x - shipX;
     const dy = data.y - shipY;
-    const angleDelta = data.angle - shipAngle;
+    const rawAngleDelta = data.angle - shipAngle;
+    const angleDelta = ((rawAngleDelta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
     const distanceSq = dx * dx + dy * dy;
     const maxDist = (SHIP_SPEED * 2) * (SHIP_SPEED * 2);
     const maxAngle = SHIP_ROTATION_SPEED * 2;
@@ -95,12 +96,16 @@ io.on('connection', (socket: Socket) => {
       shipY = data.y;
       shipAngle = data.angle;
 
-      // Update player positions from client data (accounts for rotation offsets)
-      if (data.players) {
-        Object.keys(data.players).forEach(id => {
-          if (players[id]) {
-            players[id].x = data.players[id].x;
-            players[id].y = data.players[id].y;
+      // Helm player position from client (accounts for station rotation offset).
+      // Non-helm players: translate by ship movement delta — their exact
+      // positions are maintained by their own playerMovement events.
+      if (data.players && data.players[socket.id] && players[socket.id]) {
+        players[socket.id].x = data.players[socket.id].x;
+        players[socket.id].y = data.players[socket.id].y;
+        Object.keys(players).forEach(id => {
+          if (id !== socket.id) {
+            players[id].x += dx;
+            players[id].y += dy;
           }
         });
       } else {
@@ -116,6 +121,8 @@ io.on('connection', (socket: Socket) => {
 
       // Broadcast all player positions so remote clients stay in sync
       io.emit('playersMoved', players);
+    } else {
+      socket.emit('forceShipPosition', { x: shipX, y: shipY, angle: shipAngle });
     }
   });
 

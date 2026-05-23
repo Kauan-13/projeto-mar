@@ -178,7 +178,15 @@ export default class PlayerManager {
 		const local = this.worldToLocal(x, y);
 		this.offsetX = local.x;
 		this.offsetY = local.y;
-		this.sprite.setPosition(x, y);
+
+		const DECK_MARGIN_Y = 50;
+		const maxOffX = (this.ship.sprite.displayWidth - this.sprite.displayWidth) / 2;
+		const maxOffY = (this.ship.sprite.displayHeight - this.sprite.displayHeight) / 2 - DECK_MARGIN_Y;
+		this.offsetX = Phaser.Math.Clamp(this.offsetX, -maxOffX, maxOffX);
+		this.offsetY = Phaser.Math.Clamp(this.offsetY, -maxOffY, maxOffY);
+
+		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
+		this.sprite.setPosition(worldPos.x, worldPos.y);
 	}
 
 	recalcLocalPosition(): void {
