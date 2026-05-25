@@ -156,7 +156,8 @@ export default class MainScene extends Phaser.Scene {
 
 		const shipDx = this.ship.x - this.prevShipX;
 		const shipDy = this.ship.y - this.prevShipY;
-		const shipAngleDelta = this.ship.rotation - this.prevShipAngle;
+		const rawAngleDelta = this.ship.rotation - this.prevShipAngle;
+		const shipAngleDelta = ((rawAngleDelta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 
 		if (shipDx !== 0 || shipDy !== 0 || shipAngleDelta !== 0) {
 			this.stationManager.updatePositions();

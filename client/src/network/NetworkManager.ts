@@ -66,7 +66,8 @@ export default class NetworkManager {
 			ship.sprite.setAngularVelocity(0);
 			stationManager.updatePositions();
 
-			const angleDelta = ship.rotation - prevAngle;
+			const rawAngleDelta = ship.rotation - prevAngle;
+			const angleDelta = ((rawAngleDelta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 			if (angleDelta !== 0) {
 				const cos = Math.cos(angleDelta);
 				const sin = Math.sin(angleDelta);
@@ -102,10 +103,20 @@ export default class NetworkManager {
 			});
 		});
 
-		this.socket.on('playerStationChanged', (data: { id: string; station: Station }) => {
-			playerManager.setRemotePlayerStation(data.id, data.station);
+		this.socket.on('forceShipPosition', (data: { x: number; y: number; angle: number }) => {
+			ship.sprite.x = data.x;
+			ship.sprite.y = data.y;
+			ship.sprite.rotation = data.angle;
+			ship.sprite.setVelocity(0, 0);
+			ship.sprite.setAngularVelocity(0);
+			stationManager.updatePositions();
+			playerManager.recalcLocalPosition();
 		});
-	}
+
+    this.socket.on('playerStationChanged', (data: { id: string; station: Station }) => {
+      playerManager.setRemotePlayerStation(data.id, data.station);
+    });
+  }
 
 	emitPlayerMovement(x: number, y: number, state: PlayerState, direction: PlayerDirection): void {
 		this.socket.emit('playerMovement', { x, y, state, direction });
