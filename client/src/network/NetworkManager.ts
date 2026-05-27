@@ -7,13 +7,16 @@ import StationManager from '../systems/StationManager';
 export default class NetworkManager {
 	private socket: Socket;
 	private playerManager: PlayerManager;
+	private onShipSynced?: () => void;
 
 	constructor(
 		ship: Ship,
 		playerManager: PlayerManager,
 		stationManager: StationManager,
 		onLocalPlayerCreated: (x: number, y: number) => void,
+		onShipSyncedFromNetwork?: () => void,
 	) {
+		this.onShipSynced = onShipSyncedFromNetwork;
 		this.playerManager = playerManager;
 		this.socket = io('http://localhost:3000');
 
@@ -88,6 +91,7 @@ export default class NetworkManager {
 			}
 
 			playerManager.recalcLocalPosition();
+			this.onShipSynced?.();
 		});
 
 		this.socket.on('playersMoved', (players: { [id: string]: PlayerData }) => {
@@ -111,6 +115,7 @@ export default class NetworkManager {
 			ship.sprite.setAngularVelocity(0);
 			stationManager.updatePositions();
 			playerManager.recalcLocalPosition();
+			this.onShipSynced?.();
 		});
 
     this.socket.on('playerStationChanged', (data: { id: string; station: Station }) => {

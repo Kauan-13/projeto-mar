@@ -137,6 +137,11 @@ export default class MainScene extends Phaser.Scene {
 				this.cameras.main.centerOn(x, y);
 				this.cameras.main.startFollow(this.playerManager.sprite);
 			},
+			() => {
+				this.prevShipX = this.ship.x;
+				this.prevShipY = this.ship.y;
+				this.prevShipAngle = this.ship.rotation;
+			},
 		);
 
 		this.prevShipX = this.ship.x;
