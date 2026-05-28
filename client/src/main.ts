@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import MainScene from './scenes/MainScene';
+import UIScene from './scenes/UIScene';
 import VirtualJoystickPlugin from 'phaser3-rex-plugins/plugins/virtualjoystick-plugin.js';
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -9,7 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
     },
     parent: 'game-container',
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: 800,
         height: 600
@@ -29,7 +30,7 @@ const config: Phaser.Types.Core.GameConfig = {
             start: true
         }]
     },
-    scene: [MainScene]
+    scene: [MainScene, UIScene]
 };
 
 const game = new Phaser.Game(config);

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DECK_ZOOM, STATIONS } from '../config/gameConfig';
+import { DECK_ZOOM, STATIONS, ENEMY_DAMAGE } from '../config/gameConfig';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
@@ -25,6 +25,7 @@ export default class MainScene extends Phaser.Scene {
 	private prevShipX!: number;
 	private prevShipY!: number;
 	private prevShipAngle!: number;
+	private gameOver = false;
 
 	constructor() {
 		super('MainScene');
@@ -154,15 +155,37 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipY = this.ship.y;
 		this.prevShipAngle = this.ship.rotation;
 
+		this.scene.launch('UIScene');
+
 		console.log('[DEBUG] create() DONE');
 		if (this.input.keyboard) {
 			this.cursors = this.input.keyboard.createCursorKeys();
 			this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 			this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 		}
+
+		this.matter.world.on('collisionstart', (_event, bodyA, bodyB) => {
+			const a = bodyA as MatterJS.BodyType;
+			const b = bodyB as MatterJS.BodyType;
+			const enemyBody = a.label === 'enemy' ? a : b.label === 'enemy' ? b : null;
+			const shipBody = a.label === 'ship' ? a : b.label === 'ship' ? b : null;
+			if (!enemyBody || !shipBody) return;
+
+			const sprite = (enemyBody as any).gameObject as Phaser.GameObjects.Sprite;
+			if (sprite && sprite.active) {
+				sprite.destroy();
+				const hpPct = this.ship.takeDamage(ENEMY_DAMAGE);
+				this.events.emit('updateHealth', hpPct);
+				if (hpPct <= 0) {
+					this.gameOver = true;
+					this.events.emit('gameOver');
+				}
+			}
+		});
 	}
 
 	update(_time: number, delta: number) {
+		if (this.gameOver) return;
 		const dt = delta / 16.67;
 
 		const shipDx = this.ship.x - this.prevShipX;

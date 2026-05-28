@@ -7,6 +7,7 @@ import {
 } from '../config/gameConfig';
 
 const ISLAND_CATEGORY = 0x0002;
+const SHIP_CATEGORY = 0x0001;
 
 export default class EnemyManager {
 	private scene: Phaser.Scene;
@@ -41,7 +42,7 @@ export default class EnemyManager {
 
 		const enemy = this.scene.matter.add.sprite(x, y, 'enemy', undefined, {
 			shape: 'circle',
-			collisionFilter: { category: ENEMY_CATEGORY, mask: ISLAND_CATEGORY, group: 0 },
+			collisionFilter: { category: ENEMY_CATEGORY, mask: ISLAND_CATEGORY | SHIP_CATEGORY, group: 0 },
 			label: 'enemy',
 			frictionAir: 0.02,
 			restitution: 0.3,
