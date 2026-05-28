@@ -49,3 +49,19 @@ export const SHIP_FRICTION = 0.02;
 export const SHIP_ROTATION_SPEED = 0.7;
 export const SHIP_ROTATION_ACCEL = 0.2;
 export const SHIP_ROTATION_FRICTION = 0.001;
+
+export interface EnemyData {
+    id: string;
+    x: number;
+    y: number;
+}
+
+export const SHIP_MAX_HP = 100;
+export const ENEMY_DAMAGE = 10;
+export const MAX_ENEMIES = 5;
+export const ENEMY_SPAWN_INTERVAL_MS = 5000;
+export const ENEMY_SPAWN_MARGIN = 80;
+export const MAP_WIDTH = 1280;
+export const MAP_HEIGHT = 1280;
+export const ENEMY_SERVER_SPEED = 1.5;
+export const ENEMY_HIT_DISTANCE = 100;

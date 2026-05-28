@@ -2,20 +2,17 @@ import Phaser from 'phaser';
 import {
 	SHIP_X, SHIP_Y, SHIP_SPEED, SHIP_ROTATION_SPEED,
 } from '../../../shared/types';
-import { ENEMY_CATEGORY, SHIP_MAX_HP } from '../config/gameConfig';
 
 const SHIP_CATEGORY = 0x0001;
 const ISLAND_CATEGORY = 0x0002;
 
 export default class Ship {
 	sprite: Phaser.Physics.Matter.Sprite;
-	hp: number = SHIP_MAX_HP;
-	destroyed = false;
 
 	constructor(scene: Phaser.Scene) {
 		this.sprite = scene.matter.add.sprite(SHIP_X, SHIP_Y, 'ship', undefined, {
 			shape: { type: 'rectangle', width: 46, height: 105 },
-			collisionFilter: { category: SHIP_CATEGORY, mask: ENEMY_CATEGORY, group: 0 },
+			collisionFilter: { category: SHIP_CATEGORY, mask: 0x0000, group: 0 },
 			label: 'ship',
 			friction: 0,
 			frictionStatic: 0,
@@ -67,19 +64,13 @@ export default class Ship {
 	}
 
 	setCollisionEnabled(enabled: boolean): void {
-		this.sprite.setCollidesWith(enabled ? [ISLAND_CATEGORY, ENEMY_CATEGORY] : [ENEMY_CATEGORY]);
+		this.sprite.setCollidesWith(enabled ? [ISLAND_CATEGORY] : []);
 	}
 
-	takeDamage(amount: number): number {
-		if (this.destroyed) return 0;
-		this.hp = Math.max(0, this.hp - amount);
-		if (this.hp <= 0) {
-			this.destroyed = true;
-			this.sprite.setVisible(false);
-			this.sprite.setVelocity(0, 0);
-			this.sprite.setAngularVelocity(0);
-			this.sprite.setCollidesWith([]);
-		}
-		return (this.hp / SHIP_MAX_HP) * 100;
+	destroy(): void {
+		this.sprite.setVisible(false);
+		this.sprite.setVelocity(0, 0);
+		this.sprite.setAngularVelocity(0);
+		this.sprite.setCollidesWith([]);
 	}
 }
