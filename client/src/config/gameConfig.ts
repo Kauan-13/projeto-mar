@@ -21,3 +21,13 @@ export const DECK_ZOOM = 2.2;
 export const CANNONBALL_SPEED = 8;
 export const CANNONBALL_LIFE = 50;
 export const STATION_PROXIMITY_RANGE = 20;
+
+export const ENEMY_CATEGORY = 0x0008;
+export const ENEMY_SPEED = 0.0001;
+export const ENEMY_ACCEL = 0.00004;
+export const MAX_ENEMIES = 5;
+export const ENEMY_SPAWN_INTERVAL = 300;
+export const ENEMY_SPAWN_MARGIN = 80;
+export const ENEMY_WHISKER_LENGTH = 70;
+export const ENEMY_WHISKER_ANGLE = Math.PI / 6;
+export const ENEMY_AVOID_FORCE = 0.0003;

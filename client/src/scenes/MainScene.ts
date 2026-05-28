@@ -5,6 +5,7 @@ import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
 import type { CameraConfig } from '../systems/StationManager';
 import CannonballManager from '../entities/CannonballManager';
+import EnemyManager from '../entities/EnemyManager';
 import NetworkManager from '../network/NetworkManager';
 
 const ISLAND_CATEGORY = 0x0002;
@@ -15,6 +16,7 @@ export default class MainScene extends Phaser.Scene {
 	private playerManager!: PlayerManager;
 	private stationManager!: StationManager;
 	private cannonballManager!: CannonballManager;
+	private enemyManager!: EnemyManager;
 	private network!: NetworkManager;
 	private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 	private keyE!: Phaser.Input.Keyboard.Key;
@@ -36,6 +38,7 @@ export default class MainScene extends Phaser.Scene {
 		this.load.spritesheet('player_1', 'assets/sprites/player/player_1.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.spritesheet('player_2', 'assets/sprites/player/player_2.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.image('ship', 'assets/sprites/ship/basic_ship.png');
+		this.load.image('enemy', 'assets/sprites/enemy/enemy.png');
 	}
 
 	create() {
@@ -128,6 +131,9 @@ export default class MainScene extends Phaser.Scene {
 		console.log('[DEBUG] creating CannonballManager...');
 		this.cannonballManager = new CannonballManager(this);
 
+		console.log('[DEBUG] creating EnemyManager...');
+		this.enemyManager = new EnemyManager(this, this.ship);
+
 		console.log('[DEBUG] creating NetworkManager...');
 		this.network = new NetworkManager(
 			this.ship,
@@ -178,6 +184,8 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipAngle = this.ship.rotation;
 
 		this.cannonballManager.update(dt);
+
+		this.enemyManager.update(dt);
 
 		if (!this.playerManager.sprite) return;
 
