@@ -90,6 +90,10 @@ export default class NetworkManager {
 				});
 			}
 
+			playerManager.group.getChildren().forEach((other: any) => {
+				playerManager.clampRemoteToDeck(other);
+			});
+
 			playerManager.recalcLocalPosition();
 			this.onShipSynced?.();
 		});

@@ -148,6 +148,10 @@ export default class PlayerManager {
 			});
 		}
 
+		this.group.getChildren().forEach((other: any) => {
+			this.clampRemoteToDeck(other);
+		});
+
 		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
 		this.sprite.x = worldPos.x;
 		this.sprite.y = worldPos.y;
@@ -187,6 +191,18 @@ export default class PlayerManager {
 
 		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
 		this.sprite.setPosition(worldPos.x, worldPos.y);
+	}
+
+	clampRemoteToDeck(sprite: Phaser.GameObjects.Sprite): void {
+		const local = this.worldToLocal(sprite.x, sprite.y);
+		const DECK_MARGIN_Y = 50;
+		const maxOffX = (this.ship.sprite.displayWidth - sprite.displayWidth) / 2;
+		const maxOffY = (this.ship.sprite.displayHeight - sprite.displayHeight) / 2 - DECK_MARGIN_Y;
+		const cx = Phaser.Math.Clamp(local.x, -maxOffX, maxOffX);
+		const cy = Phaser.Math.Clamp(local.y, -maxOffY, maxOffY);
+		const worldPos = this.localToWorld(cx, cy);
+		sprite.x = worldPos.x;
+		sprite.y = worldPos.y;
 	}
 
 	recalcLocalPosition(): void {
