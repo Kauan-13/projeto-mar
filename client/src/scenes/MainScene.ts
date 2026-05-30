@@ -40,7 +40,7 @@ export default class MainScene extends Phaser.Scene {
 		this.load.spritesheet('player_1', 'assets/sprites/player/player_1.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.spritesheet('player_2', 'assets/sprites/player/player_2.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.image('ship', 'assets/sprites/ship/basic_ship.png');
-		this.load.image('enemy', 'assets/sprites/enemy/enemy.png');
+		this.load.spritesheet('enemy', 'assets/sprites/enemy/anim-nme-ghost.png', { frameWidth: 32, frameHeight: 32 });
 	}
 
 	create() {
@@ -230,7 +230,7 @@ export default class MainScene extends Phaser.Scene {
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
-				this.cannonballManager.fire(this.ship.x, this.ship.y, direction);
+				this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
 			}
 		}
 	}

@@ -10,6 +10,13 @@ export default class EnemyManager {
 		this.scene = scene;
 		this.ship = ship;
 		this.group = scene.add.group();
+
+		scene.anims.create({
+			key: 'enemy_walk',
+			frames: scene.anims.generateFrameNumbers('enemy', { start: 0, end: 5 }),
+			frameRate: 6,
+			repeat: -1,
+		});
 	}
 
 	spawnEnemy(id: string, x: number, y: number): void {
@@ -19,6 +26,7 @@ export default class EnemyManager {
 		(enemy as any).targetY = y;
 		enemy.setScale(2);
 		enemy.setDepth(8);
+		enemy.play('enemy_walk');
 		this.group.add(enemy);
 	}
 
@@ -48,7 +56,7 @@ export default class EnemyManager {
 			child.y += dy * 0.2;
 
 			if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-				child.setRotation(Math.atan2(dy, dx));
+				// child.setRotation(Math.atan2(dy, dx));
 			}
 		});
 	}
