@@ -12,12 +12,15 @@ export default class CannonballManager {
 		this.group = scene.add.group();
 	}
 
-	fire(shipX: number, shipY: number, direction: number): void {
-		const ball = this.scene.add.circle(
-			shipX + direction * 80,
-			shipY,
-			4, 0xff8800,
-		);
+	fire(shipX: number, shipY: number, shipAngle: number, direction: number): void {
+		const cos = Math.cos(shipAngle);
+		const sin = Math.sin(shipAngle);
+
+		const localX = direction;
+		const spawnX = shipX + (localX*45) * cos;
+		const spawnY = -10 + shipY + (localX*45) * sin;
+
+		const ball = this.scene.add.circle(spawnX, spawnY, 4, 0xff8800);
 		ball.setDepth(15);
 
 		this.scene.matter.add.gameObject(ball, {
@@ -28,7 +31,10 @@ export default class CannonballManager {
 			collisionFilter: { category: CANNONBALL_CATEGORY, mask: 0x0000, group: 0 },
 		});
 
-		(ball as any).setVelocity(CANNONBALL_SPEED * 60 * direction, 0);
+		const speed = CANNONBALL_SPEED * 60;
+		const vx = -speed * (direction*-1) * cos;
+		const vy = -speed * (direction*-1) * sin;
+		(ball as any).setVelocity(vx, vy);
 		(ball as any).life = 0;
 		this.group.add(ball);
 	}

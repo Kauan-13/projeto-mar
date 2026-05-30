@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { PlayerData, Station, PlayerState, PlayerDirection } from '../../../shared/types';
+import type { PlayerData, Station, PlayerState, PlayerDirection, EnemyData } from '../../../shared/types';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
@@ -8,6 +8,11 @@ export default class NetworkManager {
 	private socket: Socket;
 	private playerManager: PlayerManager;
 	private onShipSynced?: () => void;
+	private onEnemySpawned?: (id: string, x: number, y: number) => void;
+	private onEnemyDestroyed?: (id: string) => void;
+	private onShipDamaged?: (hpPct: number) => void;
+	private onGameOver?: () => void;
+	private onEnemiesMoved?: (enemies: EnemyData[]) => void;
 
 	constructor(
 		ship: Ship,
@@ -15,9 +20,20 @@ export default class NetworkManager {
 		stationManager: StationManager,
 		onLocalPlayerCreated: (x: number, y: number) => void,
 		onShipSyncedFromNetwork?: () => void,
+		onEnemyState?: (enemies: EnemyData[], hpPct: number) => void,
+		onEnemySpawned?: (id: string, x: number, y: number) => void,
+		onEnemyDestroyed?: (id: string) => void,
+		onShipDamaged?: (hpPct: number) => void,
+		onGameOver?: () => void,
+		onEnemiesMoved?: (enemies: EnemyData[]) => void,
 	) {
 		this.onShipSynced = onShipSyncedFromNetwork;
 		this.playerManager = playerManager;
+		this.onEnemySpawned = onEnemySpawned;
+		this.onEnemyDestroyed = onEnemyDestroyed;
+		this.onShipDamaged = onShipDamaged;
+		this.onGameOver = onGameOver;
+		this.onEnemiesMoved = onEnemiesMoved;
 		this.socket = io('http://localhost:3000');
 
 		this.socket.on('connect', () => {
@@ -125,6 +141,30 @@ export default class NetworkManager {
     this.socket.on('playerStationChanged', (data: { id: string; station: Station }) => {
       playerManager.setRemotePlayerStation(data.id, data.station);
     });
+
+    this.socket.on('enemyState', (data: { enemies: EnemyData[]; shipHpPct: number }) => {
+      onEnemyState?.(data.enemies, data.shipHpPct);
+    });
+
+    this.socket.on('enemySpawned', (data: EnemyData) => {
+      this.onEnemySpawned?.(data.id, data.x, data.y);
+    });
+
+    this.socket.on('enemyDestroyed', (data: { id: string }) => {
+      this.onEnemyDestroyed?.(data.id);
+    });
+
+    this.socket.on('shipDamaged', (data: { hp: number; hpPct: number }) => {
+      this.onShipDamaged?.(data.hpPct);
+    });
+
+    this.socket.on('gameOver', () => {
+      this.onGameOver?.();
+    });
+
+    this.socket.on('enemiesMoved', (data: { enemies: EnemyData[] }) => {
+      this.onEnemiesMoved?.(data.enemies);
+    });
   }
 
 	emitPlayerMovement(x: number, y: number, state: PlayerState, direction: PlayerDirection): void {
@@ -138,6 +178,10 @@ export default class NetworkManager {
 	emitShipMove(x: number, y: number, angle: number): void {
 		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id);
 		this.socket.emit('shipMove', { x, y, angle, players: positions });
+	}
+
+	emitEnemyHit(enemyId: string): void {
+		this.socket.emit('enemyHitShip', { enemyId });
 	}
 
 	getSocketId(): string {

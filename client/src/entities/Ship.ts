@@ -66,4 +66,11 @@ export default class Ship {
 	setCollisionEnabled(enabled: boolean): void {
 		this.sprite.setCollidesWith(enabled ? [ISLAND_CATEGORY] : []);
 	}
+
+	destroy(): void {
+		this.sprite.setVisible(false);
+		this.sprite.setVelocity(0, 0);
+		this.sprite.setAngularVelocity(0);
+		this.sprite.setCollidesWith([]);
+	}
 }

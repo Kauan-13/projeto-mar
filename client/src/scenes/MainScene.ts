@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import { DECK_ZOOM, STATIONS } from '../config/gameConfig';
+import type { EnemyData } from '../../../shared/types';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
 import type { CameraConfig } from '../systems/StationManager';
 import CannonballManager from '../entities/CannonballManager';
+import EnemyManager from '../entities/EnemyManager';
 import NetworkManager from '../network/NetworkManager';
 
 const ISLAND_CATEGORY = 0x0002;
@@ -15,6 +17,7 @@ export default class MainScene extends Phaser.Scene {
 	private playerManager!: PlayerManager;
 	private stationManager!: StationManager;
 	private cannonballManager!: CannonballManager;
+	private enemyManager!: EnemyManager;
 	private network!: NetworkManager;
 	private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 	private keyE!: Phaser.Input.Keyboard.Key;
@@ -23,6 +26,7 @@ export default class MainScene extends Phaser.Scene {
 	private prevShipX!: number;
 	private prevShipY!: number;
 	private prevShipAngle!: number;
+	private gameOver = false;
 
 	constructor() {
 		super('MainScene');
@@ -36,6 +40,7 @@ export default class MainScene extends Phaser.Scene {
 		this.load.spritesheet('player_1', 'assets/sprites/player/player_1.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.spritesheet('player_2', 'assets/sprites/player/player_2.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.image('ship', 'assets/sprites/ship/basic_ship.png');
+		this.load.spritesheet('enemy', 'assets/sprites/enemy/anim-nme-ghost.png', { frameWidth: 32, frameHeight: 32 });
 	}
 
 	create() {
@@ -128,6 +133,9 @@ export default class MainScene extends Phaser.Scene {
 		console.log('[DEBUG] creating CannonballManager...');
 		this.cannonballManager = new CannonballManager(this);
 
+		console.log('[DEBUG] creating EnemyManager...');
+		this.enemyManager = new EnemyManager(this, this.ship);
+
 		console.log('[DEBUG] creating NetworkManager...');
 		this.network = new NetworkManager(
 			this.ship,
@@ -142,11 +150,26 @@ export default class MainScene extends Phaser.Scene {
 				this.prevShipY = this.ship.y;
 				this.prevShipAngle = this.ship.rotation;
 			},
+			(enemies: EnemyData[], hpPct: number) => {
+				enemies.forEach(e => this.enemyManager.spawnEnemy(e.id, e.x, e.y));
+				this.events.emit('updateHealth', hpPct);
+			},
+			(id: string, x: number, y: number) => this.enemyManager.spawnEnemy(id, x, y),
+			(id: string) => this.enemyManager.removeEnemy(id),
+			(hpPct: number) => this.events.emit('updateHealth', hpPct),
+			() => {
+				this.gameOver = true;
+				this.ship.destroy();
+				this.events.emit('gameOver');
+			},
+			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
 		);
 
 		this.prevShipX = this.ship.x;
 		this.prevShipY = this.ship.y;
 		this.prevShipAngle = this.ship.rotation;
+
+		this.scene.launch('UIScene');
 
 		console.log('[DEBUG] create() DONE');
 		if (this.input.keyboard) {
@@ -157,6 +180,7 @@ export default class MainScene extends Phaser.Scene {
 	}
 
 	update(_time: number, delta: number) {
+		if (this.gameOver) return;
 		const dt = delta / 16.67;
 
 		const shipDx = this.ship.x - this.prevShipX;
@@ -178,6 +202,8 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipAngle = this.ship.rotation;
 
 		this.cannonballManager.update(dt);
+
+		this.enemyManager.update(dt);
 
 		if (!this.playerManager.sprite) return;
 
@@ -204,7 +230,7 @@ export default class MainScene extends Phaser.Scene {
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
-				this.cannonballManager.fire(this.ship.x, this.ship.y, direction);
+				this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
 			}
 		}
 	}

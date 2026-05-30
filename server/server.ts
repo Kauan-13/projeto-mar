@@ -1,8 +1,8 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
-import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData } from '../shared/types.ts';
-import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED } from '../shared/types.ts';
+import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData, EnemyData } from '../shared/types.ts';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE } from '../shared/types.ts';
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,6 +20,9 @@ const players: Record<string, PlayerData> = {};
 let shipX = SHIP_X;
 let shipY = SHIP_Y;
 let shipAngle = 0;
+let shipHp = SHIP_MAX_HP;
+const enemies: Record<string, EnemyData> = {};
+let enemyIdCounter = 0;
 const GAME_SPEED = PLAYER_SPEED;
 
 io.on('connection', (socket: Socket) => {
@@ -42,6 +45,9 @@ io.on('connection', (socket: Socket) => {
 
   // Send current players to the new player
   socket.emit('currentPlayers', players);
+
+  // Send enemy state and HP to the new player
+  socket.emit('enemyState', { enemies: Object.values(enemies), shipHpPct: (shipHp / SHIP_MAX_HP) * 100 });
 
   // Broadcast to all other players that a new player has joined
   socket.broadcast.emit('playerJoined', newPlayer);
@@ -137,3 +143,50 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+setInterval(() => {
+  if (Object.keys(enemies).length >= MAX_ENEMIES || shipHp <= 0) return;
+  const side = Math.floor(Math.random() * 4);
+  let x: number;
+  let y: number;
+  const M = ENEMY_SPAWN_MARGIN;
+  const W = MAP_WIDTH;
+  const H = MAP_HEIGHT;
+  switch (side) {
+    case 0: x = Math.random() * W; y = -M; break;
+    case 1: x = W + M; y = Math.random() * H; break;
+    case 2: x = Math.random() * W; y = H + M; break;
+    default: x = -M; y = Math.random() * H; break;
+  }
+  const enemy: EnemyData = { id: `e${++enemyIdCounter}`, x, y };
+  enemies[enemy.id] = enemy;
+  io.emit('enemySpawned', enemy);
+}, ENEMY_SPAWN_INTERVAL_MS);
+
+setInterval(() => {
+  if (shipHp <= 0) return;
+  const idsToRemove: string[] = [];
+  for (const id in enemies) {
+    const e = enemies[id];
+    const dx = shipX - e.x;
+    const dy = shipY - e.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < ENEMY_HIT_DISTANCE) {
+      idsToRemove.push(id);
+    } else {
+      e.x += (dx / dist) * ENEMY_SERVER_SPEED;
+      e.y += (dy / dist) * ENEMY_SERVER_SPEED;
+    }
+  }
+  for (const id of idsToRemove) {
+    delete enemies[id];
+    io.emit('enemyDestroyed', { id });
+    shipHp = Math.max(0, shipHp - ENEMY_DAMAGE);
+    io.emit('shipDamaged', { hp: shipHp, hpPct: (shipHp / SHIP_MAX_HP) * 100 });
+    if (shipHp <= 0) {
+      io.emit('gameOver');
+      break;
+    }
+  }
+  io.emit('enemiesMoved', { enemies: Object.values(enemies) });
+}, 50);
