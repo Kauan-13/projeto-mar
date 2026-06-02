@@ -28,6 +28,16 @@ const GAME_SPEED = PLAYER_SPEED;
 io.on('connection', (socket: Socket) => {
   console.log(`Player connected: ${socket.id}`);
 
+  if (shipHp <= 0) {
+    console.log('[Reset] Game over state detected, resetting...');
+    shipHp = SHIP_MAX_HP;
+    shipX = SHIP_X;
+    shipY = SHIP_Y;
+    shipAngle = 0;
+    for (const id in enemies) delete enemies[id];
+    enemyIdCounter = 0;
+  }
+
   // Create new player on the ship deck
   const newPlayer: PlayerData = {
     id: socket.id,
@@ -136,6 +146,18 @@ io.on('connection', (socket: Socket) => {
     console.log(`Player disconnected: ${socket.id}`);
     delete players[socket.id];
     io.emit('playerLeft', socket.id);
+  });
+
+  socket.on('returnToMenu', () => {
+    console.log(`[Reset] Player ${socket.id} requested return to menu`);
+    shipHp = SHIP_MAX_HP;
+    shipX = SHIP_X;
+    shipY = SHIP_Y;
+    shipAngle = 0;
+    for (const id in enemies) delete enemies[id];
+    enemyIdCounter = 0;
+    for (const id in players) delete players[id];
+    io.emit('returnToMenu');
   });
 });
 

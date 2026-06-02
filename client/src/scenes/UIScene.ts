@@ -5,6 +5,9 @@ export default class UIScene extends Phaser.Scene {
 	private hpBarFill!: Phaser.GameObjects.Rectangle;
 	private gameOverOverlay!: Phaser.GameObjects.Rectangle;
 	private gameOverText!: Phaser.GameObjects.Text;
+	private voltarBtnBg!: Phaser.GameObjects.Rectangle;
+	private voltarBtnText!: Phaser.GameObjects.Text;
+	private voltarEnabled = false;
 
 	constructor() {
 		super('UIScene');
@@ -21,11 +24,30 @@ export default class UIScene extends Phaser.Scene {
 		this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x44cc44)
 			.setOrigin(0, 0).setDepth(1);
 
-		this.gameOverOverlay = this.add.rectangle(0, 0, 1, 1, 0x000000, 0.7)
+		this.gameOverOverlay = this.add.rectangle(0, 0, 1, 1, 0x000000, 1)
 			.setOrigin(0, 0).setDepth(10).setVisible(false);
 		this.gameOverText = this.add.text(0, 0, 'GAME OVER', {
 			fontFamily: 'monospace', fontSize: '48px', color: '#cc4444',
 		}).setOrigin(0.5).setDepth(11).setVisible(false);
+
+		const btnWidth = 240;
+		const btnHeight = 64;
+		this.voltarBtnBg = this.add.rectangle(0, 0, btnWidth, btnHeight, 0x333333, 0.85)
+			.setStrokeStyle(3, 0xffffff)
+			.setDepth(12)
+			.setVisible(false)
+			.setInteractive({ useHandCursor: true });
+		this.voltarBtnText = this.add.text(0, 0, 'Voltar ao Menu', {
+			fontFamily: 'monospace', fontSize: '24px', color: '#ffffff',
+		}).setOrigin(0.5).setDepth(13).setVisible(false);
+
+		this.voltarBtnBg.on('pointerover', () => this.voltarBtnBg.setFillStyle(0x555555, 0.85));
+		this.voltarBtnBg.on('pointerout', () => this.voltarBtnBg.setFillStyle(0x333333, 0.85));
+		this.voltarBtnBg.on('pointerdown', () => this.voltarBtnBg.setFillStyle(0x777777, 0.85));
+		this.voltarBtnBg.on('pointerup', () => this.requestReturn());
+
+		this.voltarBtnText.setInteractive({ useHandCursor: true });
+		this.voltarBtnText.on('pointerup', () => this.requestReturn());
 
 		this.positionGameOver();
 
@@ -46,15 +68,39 @@ export default class UIScene extends Phaser.Scene {
 
 		this.scene.get('MainScene').events.on('gameOver', () => {
 			this.gameOverOverlay.setVisible(true);
+			this.gameOverOverlay.setAlpha(0.5);
 			this.gameOverText.setVisible(true);
 			this.positionGameOver();
+
+			this.tweens.add({
+				targets: this.gameOverOverlay,
+				alpha: 1,
+				duration: 3000,
+				ease: 'Linear',
+				onComplete: () => {
+					this.voltarEnabled = true;
+					this.voltarBtnBg.setVisible(true);
+					this.voltarBtnText.setVisible(true);
+					this.positionGameOver();
+				},
+			});
 		});
+	}
+
+	private requestReturn() {
+		if (!this.voltarEnabled) return;
+		const mainScene = this.scene.get('MainScene');
+		if (mainScene) {
+			mainScene.events.emit('requestReturnToMenu');
+		}
 	}
 
 	private positionGameOver(): void {
 		const w = this.cameras.main.width;
 		const h = this.cameras.main.height;
 		this.gameOverOverlay.setSize(w, h);
-		this.gameOverText.setPosition(w / 2, h / 2);
+		this.gameOverText.setPosition(w / 2, h / 2 - 60);
+		this.voltarBtnBg.setPosition(w / 2, h / 2 + 40);
+		this.voltarBtnText.setPosition(w / 2, h / 2 + 40);
 	}
 }

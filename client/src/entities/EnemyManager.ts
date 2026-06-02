@@ -38,6 +38,10 @@ export default class EnemyManager {
 		});
 	}
 
+	destroyAll(): void {
+		this.group.getChildren().forEach((child: any) => child.destroy());
+	}
+
 	setEnemyPositions(targets: { id: string; x: number; y: number }[]): void {
 		this.group.getChildren().forEach((child: any) => {
 			const t = targets.find(e => e.id === child.enemyId);
@@ -48,12 +52,12 @@ export default class EnemyManager {
 		});
 	}
 
-	update(_dt: number): void {
+	update(dt: number): void {
 		this.group.getChildren().forEach((child: any) => {
 			const dx = child.targetX - child.x;
 			const dy = child.targetY - child.y;
-			child.x += dx * 0.2;
-			child.y += dy * 0.2;
+			child.x += dx * 0.2 * dt;
+			child.y += dy * 0.2 * dt;
 
 			if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
 				// child.setRotation(Math.atan2(dy, dx));

@@ -45,6 +45,8 @@ export default class MainScene extends Phaser.Scene {
 
 	create() {
 		console.log("MainScene created");
+		this.gameOver = false;
+		this.lastEmittedState = 'idle';
 		this.cameras.main.setBackgroundColor('#1a1a2e');
 		this.cameras.main.setZoom(DECK_ZOOM);
 
@@ -160,9 +162,17 @@ export default class MainScene extends Phaser.Scene {
 			() => {
 				this.gameOver = true;
 				this.ship.destroy();
+				this.playerManager.sprite?.setVisible(false);
+				this.playerManager.group.getChildren().forEach((c: any) => c.setVisible(false));
+				this.enemyManager.destroyAll();
 				this.events.emit('gameOver');
 			},
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
+			() => {
+				this.gameOver = true;
+				this.scene.stop('UIScene');
+				this.scene.start('MainMenuScene');
+			},
 		);
 
 		this.prevShipX = this.ship.x;
@@ -170,6 +180,14 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipAngle = this.ship.rotation;
 
 		this.scene.launch('UIScene');
+
+		this.events.on('shutdown', () => {
+			this.network.disconnect();
+		});
+
+		this.events.on('requestReturnToMenu', () => {
+			this.network.emitReturnToMenu();
+		});
 
 		console.log('[DEBUG] create() DONE');
 		if (this.input.keyboard) {
@@ -208,7 +226,7 @@ export default class MainScene extends Phaser.Scene {
 		if (!this.playerManager.sprite) return;
 
 		if (this.playerManager.localStation !== null) {
-			this.handleStationOperation();
+			this.handleStationOperation(dt);
 		} else {
 			this.handleDeckMovement(dt);
 			this.stationManager.highlightProximity(
@@ -222,11 +240,11 @@ export default class MainScene extends Phaser.Scene {
 		}
 	}
 
-	private handleStationOperation() {
+	private handleStationOperation(dt: number) {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
-			this.ship.helmUpdate(this.cursors);
+			this.ship.helmUpdate(this.cursors, dt);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;

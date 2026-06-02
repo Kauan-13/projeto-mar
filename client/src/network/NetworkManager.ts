@@ -13,6 +13,7 @@ export default class NetworkManager {
 	private onShipDamaged?: (hpPct: number) => void;
 	private onGameOver?: () => void;
 	private onEnemiesMoved?: (enemies: EnemyData[]) => void;
+	private onReturnToMenu?: () => void;
 
 	constructor(
 		ship: Ship,
@@ -26,6 +27,7 @@ export default class NetworkManager {
 		onShipDamaged?: (hpPct: number) => void,
 		onGameOver?: () => void,
 		onEnemiesMoved?: (enemies: EnemyData[]) => void,
+		onReturnToMenu?: () => void,
 	) {
 		this.onShipSynced = onShipSyncedFromNetwork;
 		this.playerManager = playerManager;
@@ -34,6 +36,7 @@ export default class NetworkManager {
 		this.onShipDamaged = onShipDamaged;
 		this.onGameOver = onGameOver;
 		this.onEnemiesMoved = onEnemiesMoved;
+		this.onReturnToMenu = onReturnToMenu;
 		this.socket = io('http://localhost:3000');
 
 		this.socket.on('connect', () => {
@@ -128,6 +131,7 @@ export default class NetworkManager {
 		});
 
 		this.socket.on('forceShipPosition', (data: { x: number; y: number; angle: number }) => {
+			if (playerManager.localStation === 'rudder') return;
 			ship.sprite.x = data.x;
 			ship.sprite.y = data.y;
 			ship.sprite.rotation = data.angle;
@@ -165,6 +169,10 @@ export default class NetworkManager {
     this.socket.on('enemiesMoved', (data: { enemies: EnemyData[] }) => {
       this.onEnemiesMoved?.(data.enemies);
     });
+
+    this.socket.on('returnToMenu', () => {
+      this.onReturnToMenu?.();
+    });
   }
 
 	emitPlayerMovement(x: number, y: number, state: PlayerState, direction: PlayerDirection): void {
@@ -186,5 +194,13 @@ export default class NetworkManager {
 
 	getSocketId(): string {
 		return this.socket.id || '';
+	}
+
+	disconnect(): void {
+		this.socket.disconnect();
+	}
+
+	emitReturnToMenu(): void {
+		this.socket.emit('returnToMenu');
 	}
 }

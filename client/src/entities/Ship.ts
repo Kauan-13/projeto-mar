@@ -28,21 +28,21 @@ export default class Ship {
 	get y(): number { return this.sprite.y; }
 	get rotation(): number { return this.sprite.rotation; }
 
-	helmUpdate(cursors: Phaser.Types.Input.Keyboard.CursorKeys): void {
+	helmUpdate(cursors: Phaser.Types.Input.Keyboard.CursorKeys, dt: number): void {
 		const rad = this.sprite.rotation;
 		const forwardX = -Math.sin(rad);
 		const forwardY = Math.cos(rad);
 
 		if (cursors.up.isDown) {
-			this.sprite.applyForce({ x: forwardX * 0.01, y: forwardY * 0.01 });
+			this.sprite.applyForce({ x: forwardX * 0.01 * dt, y: forwardY * 0.01 * dt });
 		} else if (cursors.down.isDown) {
-			this.sprite.applyForce({ x: -forwardX * 0.0075, y: -forwardY * 0.0075 });
+			this.sprite.applyForce({ x: -forwardX * 0.0075 * dt, y: -forwardY * 0.0075 * dt });
 		}
 
 		if (cursors.left.isDown) {
-			this.sprite.setAngularVelocity(-SHIP_ROTATION_SPEED / 60);
+			this.sprite.setAngularVelocity(-SHIP_ROTATION_SPEED / 60 * dt);
 		} else if (cursors.right.isDown) {
-			this.sprite.setAngularVelocity(SHIP_ROTATION_SPEED / 60);
+			this.sprite.setAngularVelocity(SHIP_ROTATION_SPEED / 60 * dt);
 		} else {
 			this.sprite.setAngularVelocity(0);
 		}
@@ -51,7 +51,7 @@ export default class Ship {
 		const vx = body.velocity.x;
 		const vy = body.velocity.y;
 		const speed = Math.sqrt(vx * vx + vy * vy);
-		const maxSpeed = SHIP_SPEED / 60;
+		const maxSpeed = SHIP_SPEED / 60 * dt;
 		if (speed > maxSpeed) {
 			const scale = maxSpeed / speed;
 			this.sprite.setVelocity(vx * scale, vy * scale);
