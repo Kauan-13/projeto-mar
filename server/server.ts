@@ -182,9 +182,10 @@ io.on('connection', (socket: Socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`[Server] listening on port ${PORT}`);
+const PORT = Number(process.env.PORT) || 3000;
+
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] listening on all interfaces on port ${PORT}`);
 });
 
 setInterval(() => {

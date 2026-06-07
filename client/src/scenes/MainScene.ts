@@ -169,10 +169,11 @@ export default class MainScene extends Phaser.Scene {
 			() => {
 				this.gameOver = true;
 				this.ship.destroy();
-				this.playerManager.sprite?.setVisible(false);
-				this.playerManager.group.getChildren().forEach((c: any) => c.setVisible(false));
-				this.enemyManager.destroyAll();
-				this.events.emit('gameOver');
+				if (DEBUG) console.log('[MainScene] gameOver: waiting 2s before transition');
+				this.time.delayedCall(2000, () => {
+					this.scene.stop('UIScene');
+					this.scene.start('GameOverScene');
+				});
 			},
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
 			() => {
@@ -190,10 +191,6 @@ export default class MainScene extends Phaser.Scene {
 
 		this.events.on('shutdown', () => {
 			this.network.disconnect();
-		});
-
-		this.events.on('requestReturnToMenu', () => {
-			this.network.emitReturnToMenu();
 		});
 
 		if (DEBUG) console.log('[MainScene] create: DONE');

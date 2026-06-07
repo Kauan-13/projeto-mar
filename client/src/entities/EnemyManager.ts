@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Ship from './Ship';
 import { DEBUG } from '../config/gameConfig';
+import { ENEMY_SERVER_SPEED } from '../../../shared/types';
 
 const HP_BAR_W = 32;
 const HP_BAR_H = 4;
@@ -97,11 +98,39 @@ export default class EnemyManager {
 	}
 
 	update(dt: number): void {
+
+		// Defina a velocidade fixa que você deseja (ex: 200 pixels por segundo)
+		const SPEED = ENEMY_SERVER_SPEED * 20; 
+
 		this.group.getChildren().forEach((child: any) => {
 			const dx = child.targetX - child.x;
 			const dy = child.targetY - child.y;
-			child.x += dx * 0.2 * dt;
-			child.y += dy * 0.2 * dt;
+			
+			// Calcula a distância real em pixels usando Pitágoras
+			const distance = Math.sqrt(dx * dx + dy * dy);
+
+			// Se o inimigo já estiver muito perto do alvo, evita que ele fique "tremendo"
+			if (distance > 1) {
+				// Calcula o vetor de direção unitário (valores entre -1 e 1)
+				const dirX = dx / distance;
+				const dirY = dy / distance;
+
+				// Calcula o quanto ele deve andar neste frame (Velocidade * Tempo)
+				let moveStep = SPEED * dt;
+
+				// Evita que o inimigo passe direto do alvo caso o frame seja longo
+				if (moveStep > distance) {
+					moveStep = distance;
+				}
+
+				// Move o inimigo em velocidade constante
+				child.x += dirX * moveStep;
+				child.y += dirY * moveStep;
+			} else {
+				// Força a posição exata se estiver muito perto
+				child.x = child.targetX;
+				child.y = child.targetY;
+			}
 
 			if (child.hpBarBg) {
 				child.hpBarBg.x = child.x;
