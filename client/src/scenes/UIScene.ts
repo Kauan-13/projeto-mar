@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { DEBUG } from '../config/gameConfig';
 
 export default class UIScene extends Phaser.Scene {
 	private hpBarBg!: Phaser.GameObjects.Rectangle;
@@ -14,6 +15,7 @@ export default class UIScene extends Phaser.Scene {
 	}
 
 	create() {
+		if (DEBUG) console.log('[UIScene] create: started');
 		const barW = 180;
 		const barH = 16;
 		const barX = 16;
@@ -64,9 +66,11 @@ export default class UIScene extends Phaser.Scene {
 			} else {
 				this.hpBarFill.setFillStyle(0xcc4444);
 			}
+			if (DEBUG) console.log('[UIScene] updateHealth: HP', pct.toFixed(0), '%');
 		});
 
 		this.scene.get('MainScene').events.on('gameOver', () => {
+			if (DEBUG) console.log('[UIScene] gameOver: showing overlay');
 			this.gameOverOverlay.setVisible(true);
 			this.gameOverOverlay.setAlpha(0.5);
 			this.gameOverText.setVisible(true);
@@ -89,6 +93,7 @@ export default class UIScene extends Phaser.Scene {
 
 	private requestReturn() {
 		if (!this.voltarEnabled) return;
+		if (DEBUG) console.log('[UIScene] requestReturn: emitting requestReturnToMenu');
 		const mainScene = this.scene.get('MainScene');
 		if (mainScene) {
 			mainScene.events.emit('requestReturnToMenu');

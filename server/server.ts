@@ -4,6 +4,8 @@ import { Server, type Socket } from 'socket.io';
 import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData, EnemyData } from '../shared/types.ts';
 import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE } from '../shared/types.ts';
 
+const DEBUG = false;
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -26,10 +28,10 @@ let enemyIdCounter = 0;
 const GAME_SPEED = PLAYER_SPEED;
 
 io.on('connection', (socket: Socket) => {
-  console.log(`Player connected: ${socket.id}`);
+  if (DEBUG) console.log(`[Server] connection: Player connected ${socket.id}`);
 
   if (shipHp <= 0) {
-    console.log('[Reset] Game over state detected, resetting...');
+    if (DEBUG) console.log('[Server] connection: Game over state detected, resetting...');
     shipHp = SHIP_MAX_HP;
     shipX = SHIP_X;
     shipY = SHIP_Y;
@@ -62,6 +64,8 @@ io.on('connection', (socket: Socket) => {
   // Broadcast to all other players that a new player has joined
   socket.broadcast.emit('playerJoined', newPlayer);
 
+  if (DEBUG) console.log(`[Server] connection: ${socket.id} created, ${Object.keys(players).length} players, ${Object.keys(enemies).length} enemies`);
+
   // Handle player movement
   socket.on('playerMovement', (movementData: PlayerMovementData) => {
     const player = players[socket.id];
@@ -82,6 +86,7 @@ io.on('connection', (socket: Socket) => {
         // Broadcast the updated position to other players
         socket.broadcast.emit('playerMoved', player);
       } else {
+        if (DEBUG) console.log('[Server] playerMovement: REJECTED for', socket.id, 'dist^2', distanceSq.toFixed(0), 'max', maxDist);
         // If movement is invalid, force client back to server position
         socket.emit('forcePosition', player);
       }
@@ -94,6 +99,7 @@ io.on('connection', (socket: Socket) => {
     if (player) {
       player.station = data.station;
       io.emit('playerStationChanged', { id: socket.id, station: data.station });
+      if (DEBUG) console.log('[Server] playerStationChange:', socket.id, '->', data.station);
     }
   });
 
@@ -108,6 +114,7 @@ io.on('connection', (socket: Socket) => {
     const maxAngle = SHIP_ROTATION_SPEED * 2;
 
     if (distanceSq <= maxDist && Math.abs(angleDelta) <= maxAngle) {
+      if (DEBUG) console.log('[Server] shipMove: ACCEPTED dx', dx.toFixed(1), 'dy', dy.toFixed(1), 'angleDelta', angleDelta.toFixed(3));
       shipX = data.x;
       shipY = data.y;
       shipAngle = data.angle;
@@ -138,18 +145,19 @@ io.on('connection', (socket: Socket) => {
       // Broadcast all player positions so remote clients stay in sync
       io.emit('playersMoved', players);
     } else {
+      if (DEBUG) console.log('[Server] shipMove: REJECTED dist^2', distanceSq.toFixed(0), 'max', maxDist, 'angle', Math.abs(angleDelta).toFixed(3), 'max', maxAngle);
       socket.emit('forceShipPosition', { x: shipX, y: shipY, angle: shipAngle });
     }
   });
 
   socket.on('disconnect', () => {
-    console.log(`Player disconnected: ${socket.id}`);
+    if (DEBUG) console.log(`[Server] disconnect: Player ${socket.id} disconnected, ${Object.keys(players).length - 1} remaining`);
     delete players[socket.id];
     io.emit('playerLeft', socket.id);
   });
 
   socket.on('returnToMenu', () => {
-    console.log(`[Reset] Player ${socket.id} requested return to menu`);
+    if (DEBUG) console.log('[Server] returnToMenu: resetting game state');
     shipHp = SHIP_MAX_HP;
     shipX = SHIP_X;
     shipY = SHIP_Y;
@@ -163,11 +171,11 @@ io.on('connection', (socket: Socket) => {
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  console.log(`[Server] listening on port ${PORT}`);
 });
 
 setInterval(() => {
-  if (Object.keys(enemies).length >= MAX_ENEMIES || shipHp <= 0) return;
+  if (Object.keys(players).length === 0 || Object.keys(enemies).length >= MAX_ENEMIES || shipHp <= 0) return;
   const side = Math.floor(Math.random() * 4);
   let x: number;
   let y: number;
@@ -183,6 +191,7 @@ setInterval(() => {
   const enemy: EnemyData = { id: `e${++enemyIdCounter}`, x, y };
   enemies[enemy.id] = enemy;
   io.emit('enemySpawned', enemy);
+  if (DEBUG) console.log('[Server] enemy spawn:', enemy.id, 'at', x.toFixed(0), y.toFixed(0), 'total', Object.keys(enemies).length);
 }, ENEMY_SPAWN_INTERVAL_MS);
 
 setInterval(() => {
@@ -205,8 +214,10 @@ setInterval(() => {
     io.emit('enemyDestroyed', { id });
     shipHp = Math.max(0, shipHp - ENEMY_DAMAGE);
     io.emit('shipDamaged', { hp: shipHp, hpPct: (shipHp / SHIP_MAX_HP) * 100 });
+    if (DEBUG) console.log('[Server] enemy hit:', id, 'destroyed, ship HP', shipHp, '/', SHIP_MAX_HP);
     if (shipHp <= 0) {
       io.emit('gameOver');
+      if (DEBUG) console.log('[Server] gameOver triggered');
       break;
     }
   }

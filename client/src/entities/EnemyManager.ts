@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import Ship from './Ship';
+import { DEBUG } from '../config/gameConfig';
 
 export default class EnemyManager {
 	private scene: Phaser.Scene;
@@ -17,6 +18,7 @@ export default class EnemyManager {
 			frameRate: 6,
 			repeat: -1,
 		});
+		if (DEBUG) console.log('[EnemyManager] constructor: created, animation enemy_walk registered');
 	}
 
 	spawnEnemy(id: string, x: number, y: number): void {
@@ -28,18 +30,22 @@ export default class EnemyManager {
 		enemy.setDepth(8);
 		enemy.play('enemy_walk');
 		this.group.add(enemy);
+		if (DEBUG) console.log('[EnemyManager] spawnEnemy:', id, 'at', x.toFixed(0), y.toFixed(0));
 	}
 
 	removeEnemy(id: string): void {
 		this.group.getChildren().forEach((child: any) => {
 			if (child.enemyId === id) {
 				child.destroy();
+				if (DEBUG) console.log('[EnemyManager] removeEnemy:', id, 'destroyed');
 			}
 		});
 	}
 
 	destroyAll(): void {
+		const count = this.group.getLength();
 		this.group.getChildren().forEach((child: any) => child.destroy());
+		if (DEBUG) console.log('[EnemyManager] destroyAll:', count, 'enemies destroyed');
 	}
 
 	setEnemyPositions(targets: { id: string; x: number; y: number }[]): void {
@@ -50,6 +56,7 @@ export default class EnemyManager {
 				child.targetY = t.y;
 			}
 		});
+		if (DEBUG) console.log('[EnemyManager] setEnemyPositions:', targets.length, 'targets');
 	}
 
 	update(dt: number): void {

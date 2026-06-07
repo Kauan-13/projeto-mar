@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { DEBUG } from '../config/gameConfig';
 
 export default class MainMenuScene extends Phaser.Scene {
   private music: Phaser.Sound.BaseSound | null = null;
@@ -8,11 +9,13 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   preload() {
+    if (DEBUG) console.log('[MainMenuScene] preload: loading menu assets...');
     this.load.image('menuBg', 'assets/main_menu_background.png');
     this.load.audio('menuMusic', 'assets/audio/main_menu_track.mp3');
   }
 
   create() {
+    if (DEBUG) console.log('[MainMenuScene] create: showing tap prompt');
     const bg = this.add.image(0, 0, 'menuBg').setOrigin(0, 0);
     bg.setDisplaySize(this.scale.width, this.scale.height);
 
@@ -37,6 +40,7 @@ export default class MainMenuScene extends Phaser.Scene {
     });
 
     overlay.once('pointerdown', () => {
+      if (DEBUG) console.log('[MainMenuScene] create: tap received, unlocking audio');
       this.music = this.sound.add('menuMusic', { loop: true, volume: 0.1 });
       this.music.play();
 
@@ -48,6 +52,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   private showMenu() {
+    if (DEBUG) console.log('[MainMenuScene] showMenu: creating buttons');
     const title = this.add.text(this.scale.width / 2, this.scale.height * 0.2, 'They Will Drown:', {
       fontSize: '52px',
       color: '#ffffff',
@@ -56,7 +61,7 @@ export default class MainMenuScene extends Phaser.Scene {
       strokeThickness: 8,
     }).setOrigin(0.5);
 
-    const subtitle = this.add.text(this.scale.width / 2, this.scale.height * 0.2, 'Corsários de Desterro', {
+    const subtitle = this.add.text(this.scale.width / 2, this.scale.height * 0.2, 'Corsários do Desterro', {
       fontSize: '32px',
       color: '#ffffff',
       fontFamily: 'monospace',
@@ -89,6 +94,7 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   private startGame() {
+    if (DEBUG) console.log('[MainMenuScene] startGame: stopping music, starting MainScene');
     if (this.music && this.music.isPlaying) {
       this.music.stop();
     }

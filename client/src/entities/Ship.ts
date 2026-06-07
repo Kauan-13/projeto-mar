@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
 	SHIP_X, SHIP_Y, SHIP_SPEED, SHIP_ROTATION_SPEED,
 } from '../../../shared/types';
+import { DEBUG } from '../config/gameConfig';
 
 const SHIP_CATEGORY = 0x0001;
 const ISLAND_CATEGORY = 0x0002;
@@ -22,6 +23,7 @@ export default class Ship {
 		this.sprite.setDepth(5);
 		this.sprite.setMass(1);
 		this.sprite.setFrictionAir(0.05);
+		if (DEBUG) console.log('[Ship] constructor: spawned at', SHIP_X, SHIP_Y);
 	}
 
 	get x(): number { return this.sprite.x; }
@@ -35,14 +37,18 @@ export default class Ship {
 
 		if (cursors.up.isDown) {
 			this.sprite.applyForce({ x: forwardX * 0.01 * dt, y: forwardY * 0.01 * dt });
+			if (DEBUG) console.log('[Ship] helmUpdate: forward thrust');
 		} else if (cursors.down.isDown) {
 			this.sprite.applyForce({ x: -forwardX * 0.0075 * dt, y: -forwardY * 0.0075 * dt });
+			if (DEBUG) console.log('[Ship] helmUpdate: reverse thrust');
 		}
 
 		if (cursors.left.isDown) {
 			this.sprite.setAngularVelocity(-SHIP_ROTATION_SPEED / 60 * dt);
+			if (DEBUG) console.log('[Ship] helmUpdate: rotating left');
 		} else if (cursors.right.isDown) {
 			this.sprite.setAngularVelocity(SHIP_ROTATION_SPEED / 60 * dt);
+			if (DEBUG) console.log('[Ship] helmUpdate: rotating right');
 		} else {
 			this.sprite.setAngularVelocity(0);
 		}
@@ -55,16 +61,19 @@ export default class Ship {
 		if (speed > maxSpeed) {
 			const scale = maxSpeed / speed;
 			this.sprite.setVelocity(vx * scale, vy * scale);
+			if (DEBUG) console.log('[Ship] helmUpdate: speed capped', speed.toFixed(3), '->', (speed * scale).toFixed(3));
 		}
 	}
 
 	stopMovement(): void {
 		this.sprite.setVelocity(0, 0);
 		this.sprite.setAngularVelocity(0);
+		if (DEBUG) console.log('[Ship] stopMovement: velocity zeroed');
 	}
 
 	setCollisionEnabled(enabled: boolean): void {
 		this.sprite.setCollidesWith(enabled ? [ISLAND_CATEGORY] : []);
+		if (DEBUG) console.log('[Ship] setCollisionEnabled:', enabled ? 'enabled' : 'disabled');
 	}
 
 	destroy(): void {
@@ -72,5 +81,6 @@ export default class Ship {
 		this.sprite.setVelocity(0, 0);
 		this.sprite.setAngularVelocity(0);
 		this.sprite.setCollidesWith([]);
+		if (DEBUG) console.log('[Ship] destroy: ship hidden and disabled');
 	}
 }

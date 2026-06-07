@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CANNONBALL_SPEED, CANNONBALL_LIFE } from '../config/gameConfig';
+import { CANNONBALL_SPEED, CANNONBALL_LIFE, DEBUG } from '../config/gameConfig';
 
 const CANNONBALL_CATEGORY = 0x0004;
 
@@ -10,6 +10,7 @@ export default class CannonballManager {
 	constructor(scene: Phaser.Scene) {
 		this.scene = scene;
 		this.group = scene.add.group();
+		if (DEBUG) console.log('[CannonballManager] constructor: created');
 	}
 
 	fire(shipX: number, shipY: number, shipAngle: number, direction: number): void {
@@ -37,14 +38,19 @@ export default class CannonballManager {
 		(ball as any).setVelocity(vx, vy);
 		(ball as any).life = 0;
 		this.group.add(ball);
+
+		if (DEBUG) console.log('[CannonballManager] fire: at', spawnX.toFixed(0), spawnY.toFixed(0), 'velocity', vx.toFixed(1), vy.toFixed(1));
 	}
 
 	update(dt: number): void {
+		const before = this.group.getLength();
 		this.group.getChildren().forEach((ball: any) => {
 			ball.life += dt;
 			if (ball.life > CANNONBALL_LIFE) {
 				ball.destroy();
 			}
 		});
+		const after = this.group.getLength();
+		if (DEBUG && before !== after) console.log('[CannonballManager] update:', before - after, 'destroyed,', after, 'remaining');
 	}
 }

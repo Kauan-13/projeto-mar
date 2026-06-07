@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import type { PlayerData, Station, PlayerState, PlayerDirection, EnemyData } from '../../../shared/types';
+import { DEBUG } from '../config/gameConfig';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
@@ -40,11 +41,11 @@ export default class NetworkManager {
 		this.socket = io('http://localhost:3000');
 
 		this.socket.on('connect', () => {
-			console.log('Connected to server via Socket.io');
+			if (DEBUG) console.log('[NetworkManager] connect: connected, id', this.socket.id);
 		});
 
 		this.socket.on('currentPlayers', (players: { [id: string]: PlayerData }) => {
-			console.log('[Network] currentPlayers received, count:', Object.keys(players).length);
+			if (DEBUG) console.log('[NetworkManager] currentPlayers:', Object.keys(players).length, 'players received');
 			Object.keys(players).forEach((id) => {
 				if (players[id].id === this.socket.id) {
 					playerManager.createLocalPlayer(players[id].x, players[id].y);
@@ -56,10 +57,12 @@ export default class NetworkManager {
 		});
 
 		this.socket.on('playerJoined', (playerInfo: PlayerData) => {
+			if (DEBUG) console.log('[NetworkManager] playerJoined:', playerInfo.id);
 			playerManager.addRemotePlayer(playerInfo);
 		});
 
 		this.socket.on('playerLeft', (playerId: string) => {
+			if (DEBUG) console.log('[NetworkManager] playerLeft:', playerId);
 			playerManager.removeRemotePlayer(playerId);
 		});
 
@@ -74,6 +77,7 @@ export default class NetworkManager {
 		});
 
 		this.socket.on('forcePosition', (playerInfo: PlayerData) => {
+			if (DEBUG) console.log('[NetworkManager] forcePosition:', playerInfo.id, 'to', playerInfo.x.toFixed(0), playerInfo.y.toFixed(0));
 			playerManager.snapPosition(playerInfo.x, playerInfo.y);
 		});
 
@@ -132,6 +136,7 @@ export default class NetworkManager {
 
 		this.socket.on('forceShipPosition', (data: { x: number; y: number; angle: number }) => {
 			if (playerManager.localStation === 'rudder') return;
+			if (DEBUG) console.log('[NetworkManager] forceShipPosition:', data.x.toFixed(0), data.y.toFixed(0), data.angle.toFixed(3));
 			ship.sprite.x = data.x;
 			ship.sprite.y = data.y;
 			ship.sprite.rotation = data.angle;
@@ -143,26 +148,32 @@ export default class NetworkManager {
 		});
 
     this.socket.on('playerStationChanged', (data: { id: string; station: Station }) => {
+			if (DEBUG) console.log('[NetworkManager] playerStationChanged:', data.id, '->', data.station);
       playerManager.setRemotePlayerStation(data.id, data.station);
     });
 
     this.socket.on('enemyState', (data: { enemies: EnemyData[]; shipHpPct: number }) => {
+			if (DEBUG) console.log('[NetworkManager] enemyState:', data.enemies.length, 'enemies, HP', data.shipHpPct.toFixed(0), '%');
       onEnemyState?.(data.enemies, data.shipHpPct);
     });
 
     this.socket.on('enemySpawned', (data: EnemyData) => {
+			if (DEBUG) console.log('[NetworkManager] enemySpawned:', data.id, 'at', data.x.toFixed(0), data.y.toFixed(0));
       this.onEnemySpawned?.(data.id, data.x, data.y);
     });
 
     this.socket.on('enemyDestroyed', (data: { id: string }) => {
+			if (DEBUG) console.log('[NetworkManager] enemyDestroyed:', data.id);
       this.onEnemyDestroyed?.(data.id);
     });
 
     this.socket.on('shipDamaged', (data: { hp: number; hpPct: number }) => {
+			if (DEBUG) console.log('[NetworkManager] shipDamaged: HP', data.hp, '(data.hpPct.toFixed(0)', '%)');
       this.onShipDamaged?.(data.hpPct);
     });
 
     this.socket.on('gameOver', () => {
+			if (DEBUG) console.log('[NetworkManager] gameOver');
       this.onGameOver?.();
     });
 
@@ -171,24 +182,29 @@ export default class NetworkManager {
     });
 
     this.socket.on('returnToMenu', () => {
+			if (DEBUG) console.log('[NetworkManager] returnToMenu');
       this.onReturnToMenu?.();
     });
   }
 
 	emitPlayerMovement(x: number, y: number, state: PlayerState, direction: PlayerDirection): void {
+		if (DEBUG) console.log('[NetworkManager] emitPlayerMovement:', x.toFixed(0), y.toFixed(0), state, direction);
 		this.socket.emit('playerMovement', { x, y, state, direction });
 	}
 
 	emitStationChange(station: Station): void {
+		if (DEBUG) console.log('[NetworkManager] emitStationChange:', station);
 		this.socket.emit('playerStationChange', { station });
 	}
 
 	emitShipMove(x: number, y: number, angle: number): void {
 		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id);
+		if (DEBUG) console.log('[NetworkManager] emitShipMove:', x.toFixed(0), y.toFixed(0), angle.toFixed(3), Object.keys(positions).length, 'players');
 		this.socket.emit('shipMove', { x, y, angle, players: positions });
 	}
 
 	emitEnemyHit(enemyId: string): void {
+		if (DEBUG) console.log('[NetworkManager] emitEnemyHit:', enemyId);
 		this.socket.emit('enemyHitShip', { enemyId });
 	}
 
@@ -197,10 +213,12 @@ export default class NetworkManager {
 	}
 
 	disconnect(): void {
+		if (DEBUG) console.log('[NetworkManager] disconnect');
 		this.socket.disconnect();
 	}
 
 	emitReturnToMenu(): void {
+		if (DEBUG) console.log('[NetworkManager] emitReturnToMenu');
 		this.socket.emit('returnToMenu');
 	}
 }
