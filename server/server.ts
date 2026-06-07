@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
 import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData, EnemyData } from '../shared/types.ts';
-import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE } from '../shared/types.ts';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE, ENEMY_HP, CANNON_DAMAGE } from '../shared/types.ts';
 
 const DEBUG = false;
 
@@ -150,6 +150,19 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  socket.on('cannonHit', (data: { enemyId: string }) => {
+    const e = enemies[data.enemyId];
+    if (!e) return;
+    e.hp = Math.max(0, e.hp - CANNON_DAMAGE);
+    if (DEBUG) console.log('[Server] cannonHit:', data.enemyId, 'HP now', e.hp);
+    if (e.hp <= 0) {
+      delete enemies[data.enemyId];
+      io.emit('enemyDestroyed', { id: data.enemyId });
+    } else {
+      io.emit('enemyDamaged', { id: data.enemyId, hp: e.hp });
+    }
+  });
+
   socket.on('disconnect', () => {
     if (DEBUG) console.log(`[Server] disconnect: Player ${socket.id} disconnected, ${Object.keys(players).length - 1} remaining`);
     delete players[socket.id];
@@ -188,7 +201,7 @@ setInterval(() => {
     case 2: x = Math.random() * W; y = H + M; break;
     default: x = -M; y = Math.random() * H; break;
   }
-  const enemy: EnemyData = { id: `e${++enemyIdCounter}`, x, y };
+  const enemy: EnemyData = { id: `e${++enemyIdCounter}`, x, y, hp: ENEMY_HP, maxHp: ENEMY_HP };
   enemies[enemy.id] = enemy;
   io.emit('enemySpawned', enemy);
   if (DEBUG) console.log('[Server] enemy spawn:', enemy.id, 'at', x.toFixed(0), y.toFixed(0), 'total', Object.keys(enemies).length);

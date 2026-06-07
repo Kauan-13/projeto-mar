@@ -9,8 +9,9 @@ export default class NetworkManager {
 	private socket: Socket;
 	private playerManager: PlayerManager;
 	private onShipSynced?: () => void;
-	private onEnemySpawned?: (id: string, x: number, y: number) => void;
+	private onEnemySpawned?: (id: string, x: number, y: number, hp: number, maxHp: number) => void;
 	private onEnemyDestroyed?: (id: string) => void;
+	private onEnemyDamaged?: (id: string, hp: number) => void;
 	private onShipDamaged?: (hpPct: number) => void;
 	private onGameOver?: () => void;
 	private onEnemiesMoved?: (enemies: EnemyData[]) => void;
@@ -23,8 +24,9 @@ export default class NetworkManager {
 		onLocalPlayerCreated: (x: number, y: number) => void,
 		onShipSyncedFromNetwork?: () => void,
 		onEnemyState?: (enemies: EnemyData[], hpPct: number) => void,
-		onEnemySpawned?: (id: string, x: number, y: number) => void,
+		onEnemySpawned?: (id: string, x: number, y: number, hp: number, maxHp: number) => void,
 		onEnemyDestroyed?: (id: string) => void,
+		onEnemyDamaged?: (id: string, hp: number) => void,
 		onShipDamaged?: (hpPct: number) => void,
 		onGameOver?: () => void,
 		onEnemiesMoved?: (enemies: EnemyData[]) => void,
@@ -34,6 +36,7 @@ export default class NetworkManager {
 		this.playerManager = playerManager;
 		this.onEnemySpawned = onEnemySpawned;
 		this.onEnemyDestroyed = onEnemyDestroyed;
+		this.onEnemyDamaged = onEnemyDamaged;
 		this.onShipDamaged = onShipDamaged;
 		this.onGameOver = onGameOver;
 		this.onEnemiesMoved = onEnemiesMoved;
@@ -158,13 +161,18 @@ export default class NetworkManager {
     });
 
     this.socket.on('enemySpawned', (data: EnemyData) => {
-			if (DEBUG) console.log('[NetworkManager] enemySpawned:', data.id, 'at', data.x.toFixed(0), data.y.toFixed(0));
-      this.onEnemySpawned?.(data.id, data.x, data.y);
+			if (DEBUG) console.log('[NetworkManager] enemySpawned:', data.id, 'at', data.x.toFixed(0), data.y.toFixed(0), 'HP', data.hp);
+      this.onEnemySpawned?.(data.id, data.x, data.y, data.hp, data.maxHp);
     });
 
     this.socket.on('enemyDestroyed', (data: { id: string }) => {
 			if (DEBUG) console.log('[NetworkManager] enemyDestroyed:', data.id);
       this.onEnemyDestroyed?.(data.id);
+    });
+
+    this.socket.on('enemyDamaged', (data: { id: string; hp: number }) => {
+			if (DEBUG) console.log('[NetworkManager] enemyDamaged:', data.id, 'HP', data.hp);
+      this.onEnemyDamaged?.(data.id, data.hp);
     });
 
     this.socket.on('shipDamaged', (data: { hp: number; hpPct: number }) => {
@@ -203,9 +211,9 @@ export default class NetworkManager {
 		this.socket.emit('shipMove', { x, y, angle, players: positions });
 	}
 
-	emitEnemyHit(enemyId: string): void {
-		if (DEBUG) console.log('[NetworkManager] emitEnemyHit:', enemyId);
-		this.socket.emit('enemyHitShip', { enemyId });
+	emitCannonHit(enemyId: string): void {
+		if (DEBUG) console.log('[NetworkManager] emitCannonHit:', enemyId);
+		this.socket.emit('cannonHit', { enemyId });
 	}
 
 	getSocketId(): string {

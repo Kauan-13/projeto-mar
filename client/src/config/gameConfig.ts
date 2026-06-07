@@ -13,8 +13,8 @@ export interface StationDef {
 
 export const STATIONS: StationDef[] = [
 	{ key: 'rudder',       offsetX: 0,   offsetY: -70, color: 0xffff00, zoom: 1.0, followShip: true,  followOffsetX: 0,   followOffsetY: 0 },
-	{ key: 'cannon_left',  offsetX: -30, offsetY: -10, color: 0xff4444, zoom: 1.1, followShip: true,  followOffsetX: -200, followOffsetY: 0 },
-	{ key: 'cannon_right', offsetX: 30,  offsetY: -10, color: 0x4444ff, zoom: 1.1, followShip: true,  followOffsetX: 200,  followOffsetY: 0 },
+	{ key: 'cannon_left',  offsetX: -30, offsetY: -8, color: 0xff4444, zoom: 1.1, followShip: true,  followOffsetX: -200, followOffsetY: 0 },
+	{ key: 'cannon_right', offsetX: 30,  offsetY: -8, color: 0x4444ff, zoom: 1.1, followShip: true,  followOffsetX: 200,  followOffsetY: 0 },
 ];
 
 export const DECK_ZOOM = 2;
@@ -25,6 +25,7 @@ export const STATION_PROXIMITY_RANGE = 20;
 export const DEBUG = true;
 
 export const ENEMY_CATEGORY = 0x0008;
+export const CANNONBALL_HIT_RADIUS = 30;
 export const ENEMY_SPEED = 0.0001;
 export const ENEMY_ACCEL = 0.00004;
 export const ENEMY_WHISKER_LENGTH = 70;

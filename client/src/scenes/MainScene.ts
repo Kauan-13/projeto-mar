@@ -42,6 +42,9 @@ export default class MainScene extends Phaser.Scene {
 		this.load.spritesheet('player_2', 'assets/sprites/player/player_2.png', { frameWidth: 16, frameHeight: 16 });
 		this.load.image('ship', 'assets/sprites/ship/basic_ship.png');
 		this.load.spritesheet('enemy', 'assets/sprites/enemy/anim-nme-ghost.png', { frameWidth: 32, frameHeight: 32 });
+		this.load.image('cannon', 'assets/sprites/objects/cannon.png');
+		this.load.image('cannonball', 'assets/sprites/objects/cannonball.png');
+		this.load.image('rudder', 'assets/sprites/objects/rudder.png');
 	}
 
 	create() {
@@ -156,11 +159,12 @@ export default class MainScene extends Phaser.Scene {
 				this.prevShipAngle = this.ship.rotation;
 			},
 			(enemies: EnemyData[], hpPct: number) => {
-				enemies.forEach(e => this.enemyManager.spawnEnemy(e.id, e.x, e.y));
+				enemies.forEach(e => this.enemyManager.spawnEnemy(e.id, e.x, e.y, e.hp, e.maxHp));
 				this.events.emit('updateHealth', hpPct);
 			},
-			(id: string, x: number, y: number) => this.enemyManager.spawnEnemy(id, x, y),
+			(id: string, x: number, y: number, hp: number, maxHp: number) => this.enemyManager.spawnEnemy(id, x, y, hp, maxHp),
 			(id: string) => this.enemyManager.removeEnemy(id),
+			(id: string, hp: number) => this.enemyManager.setEnemyHp(id, hp),
 			(hpPct: number) => this.events.emit('updateHealth', hpPct),
 			() => {
 				this.gameOver = true;
@@ -225,6 +229,9 @@ export default class MainScene extends Phaser.Scene {
 		this.cannonballManager.update(dt);
 
 		this.enemyManager.update(dt);
+
+		const hits = this.cannonballManager.checkEnemyCollisions(this.enemyManager.group);
+		hits.forEach(id => this.network.emitCannonHit(id));
 
 		if (!this.playerManager.sprite) return;
 

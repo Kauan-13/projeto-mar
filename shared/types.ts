@@ -54,10 +54,14 @@ export interface EnemyData {
     id: string;
     x: number;
     y: number;
+    hp: number;
+    maxHp: number;
 }
 
 export const SHIP_MAX_HP = 100;
 export const ENEMY_DAMAGE = 10;
+export const ENEMY_HP = 100;
+export const CANNON_DAMAGE = 50;
 export const MAX_ENEMIES = 5;
 export const ENEMY_SPAWN_INTERVAL_MS = 5000;
 export const ENEMY_SPAWN_MARGIN = 80;
