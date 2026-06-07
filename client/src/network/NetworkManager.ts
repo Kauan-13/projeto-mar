@@ -41,7 +41,11 @@ export default class NetworkManager {
 		this.onGameOver = onGameOver;
 		this.onEnemiesMoved = onEnemiesMoved;
 		this.onReturnToMenu = onReturnToMenu;
-		this.socket = io('http://localhost:3000');
+		// Pega o IP/Domínio que está atualmente na barra de endereços do navegador
+		const serverHost = window.location.hostname; 
+
+		// Conecta na porta 3000 usando o mesmo IP de onde o jogo está vindo
+		this.socket = io(`http://${serverHost}:3000`);
 
 		this.socket.on('connect', () => {
 			if (DEBUG) console.log('[NetworkManager] connect: connected, id', this.socket.id);
@@ -206,7 +210,7 @@ export default class NetworkManager {
 	}
 
 	emitShipMove(x: number, y: number, angle: number): void {
-		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id);
+		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id!);
 		if (DEBUG) console.log('[NetworkManager] emitShipMove:', x.toFixed(0), y.toFixed(0), angle.toFixed(3), Object.keys(positions).length, 'players');
 		this.socket.emit('shipMove', { x, y, angle, players: positions });
 	}

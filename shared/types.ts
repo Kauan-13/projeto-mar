@@ -67,5 +67,5 @@ export const ENEMY_SPAWN_INTERVAL_MS = 1000;
 export const ENEMY_SPAWN_MARGIN = 80;
 export const MAP_WIDTH = 1280;
 export const MAP_HEIGHT = 1280;
-export const ENEMY_SERVER_SPEED = 1.5;
+export const ENEMY_SERVER_SPEED = 2.5;
 export const ENEMY_HIT_DISTANCE = 100;

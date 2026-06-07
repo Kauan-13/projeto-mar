@@ -26,7 +26,11 @@ export default class GameOverScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(1);
 
-    this.socket = io('http://localhost:3000', { forceNew: true });
+    // Pega o IP/Domínio que está atualmente na barra de endereços do navegador
+    const serverHost = window.location.hostname; 
+
+    // Conecta na porta 3000 usando o mesmo IP de onde o jogo está vindo
+    this.socket = io(`http://${serverHost}:3000`, { forceNew: true });
 
     this.socket.on('returnToMenu', () => {
       if (DEBUG) console.log('[GameOverScene] returnToMenu received');
