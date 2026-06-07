@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Station, PlayerState, PlayerDirection, PlayerData } from '../../../shared/types';
 import { PLAYER_SPEED } from '../../../shared/types';
+import { DEBUG } from '../config/gameConfig';
 import Ship from './Ship';
 
 export default class PlayerManager {
@@ -18,6 +19,7 @@ export default class PlayerManager {
 		this.scene = scene;
 		this.ship = ship;
 		this.group = scene.add.group();
+		if (DEBUG) console.log('[PlayerManager] constructor: created');
 	}
 
 	createAnimations(textureKey: string, prefix: string): void {
@@ -32,6 +34,7 @@ export default class PlayerManager {
 		this.scene.anims.create({ key: `${prefix}_walk_up`,    frames: gen(15, 17), frameRate: 8, repeat: -1 });
 		this.scene.anims.create({ key: `${prefix}_walk_right`, frames: gen(18, 20), frameRate: 8, repeat: -1 });
 		this.scene.anims.create({ key: `${prefix}_walk_left`,  frames: gen(21, 23), frameRate: 8, repeat: -1 });
+		if (DEBUG) console.log('[PlayerManager] createAnimations: created 8 animations for', prefix);
 	}
 
 	createLocalPlayer(x: number, y: number): void {
@@ -43,6 +46,7 @@ export default class PlayerManager {
 		this.sprite.setScale(1);
 		this.sprite.setDepth(10);
 		this.playAnim('idle', 'down');
+		if (DEBUG) console.log('[PlayerManager] createLocalPlayer: at', x.toFixed(0), y.toFixed(0), 'offset', this.offsetX.toFixed(0), this.offsetY.toFixed(0));
 	}
 
 	addRemotePlayer(playerInfo: PlayerData): void {
@@ -53,12 +57,14 @@ export default class PlayerManager {
 		(other as any).station = playerInfo.station;
 		this.playAnimOn(other, playerInfo.state, playerInfo.direction);
 		this.group.add(other);
+		if (DEBUG) console.log('[PlayerManager] addRemotePlayer:', playerInfo.id, 'at', playerInfo.x.toFixed(0), playerInfo.y.toFixed(0));
 	}
 
 	removeRemotePlayer(playerId: string): void {
 		this.group.getChildren().forEach((child: any) => {
 			if (child.playerId === playerId) {
 				child.destroy();
+				if (DEBUG) console.log('[PlayerManager] removeRemotePlayer:', playerId, 'destroyed');
 			}
 		});
 	}
@@ -78,6 +84,7 @@ export default class PlayerManager {
 				child.station = station;
 			}
 		});
+		if (DEBUG) console.log('[PlayerManager] setRemotePlayerStation:', id, '->', station);
 	}
 
 	moveOnDeck(cursors: Phaser.Types.Input.Keyboard.CursorKeys, dt: number): boolean {
@@ -123,6 +130,7 @@ export default class PlayerManager {
 		this.sprite.x = worldPos.x;
 		this.sprite.y = worldPos.y;
 
+		if (DEBUG) console.log('[PlayerManager] moveOnDeck:', this.direction, 'offset', this.offsetX.toFixed(0), this.offsetY.toFixed(0));
 		return true;
 	}
 
@@ -155,6 +163,10 @@ export default class PlayerManager {
 		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
 		this.sprite.x = worldPos.x;
 		this.sprite.y = worldPos.y;
+
+		if (DEBUG && (dx !== 0 || dy !== 0 || angleDelta !== 0)) {
+			console.log('[PlayerManager] syncToShip: dx', dx.toFixed(1), 'dy', dy.toFixed(1), 'angleDelta', angleDelta.toFixed(3));
+		}
 	}
 
 	enterStation(station: Station, worldX: number, worldY: number): void {
@@ -172,9 +184,11 @@ export default class PlayerManager {
 			this.direction = 'down';
 		}
 		this.playAnim('idle', this.direction);
+		if (DEBUG) console.log('[PlayerManager] enterStation:', station, 'at', worldX.toFixed(0), worldY.toFixed(0));
 	}
 
 	exitStation(): void {
+		if (DEBUG) console.log('[PlayerManager] exitStation:', this.localStation);
 		this.localStation = null;
 	}
 
@@ -191,9 +205,11 @@ export default class PlayerManager {
 
 		const worldPos = this.localToWorld(this.offsetX, this.offsetY);
 		this.sprite.setPosition(worldPos.x, worldPos.y);
+		if (DEBUG) console.log('[PlayerManager] snapPosition: forced to', x.toFixed(0), y.toFixed(0), '-> clamped to', worldPos.x.toFixed(0), worldPos.y.toFixed(0));
 	}
 
 	clampRemoteToDeck(sprite: Phaser.GameObjects.Sprite): void {
+		const before = { x: sprite.x, y: sprite.y };
 		const local = this.worldToLocal(sprite.x, sprite.y);
 		const DECK_MARGIN_Y = 50;
 		const maxOffX = (this.ship.sprite.displayWidth - sprite.displayWidth) / 2;
@@ -203,6 +219,9 @@ export default class PlayerManager {
 		const worldPos = this.localToWorld(cx, cy);
 		sprite.x = worldPos.x;
 		sprite.y = worldPos.y;
+		if (DEBUG && (sprite.x !== before.x || sprite.y !== before.y)) {
+			console.log('[PlayerManager] clampRemoteToDeck:', before.x.toFixed(0), before.y.toFixed(0), '->', sprite.x.toFixed(0), sprite.y.toFixed(0));
+		}
 	}
 
 	recalcLocalPosition(): void {

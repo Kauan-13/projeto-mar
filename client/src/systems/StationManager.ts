@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { Station } from '../../../shared/types';
-import { STATION_PROXIMITY_RANGE } from '../config/gameConfig';
+import { STATION_PROXIMITY_RANGE, DEBUG } from '../config/gameConfig';
 import type { StationDef } from '../config/gameConfig';
 import Ship from '../entities/Ship';
 
@@ -32,6 +32,7 @@ export default class StationManager {
 			(rect as any).stationKey = def.key;
 			this.rects.push(rect);
 		});
+		if (DEBUG) console.log('[StationManager] constructor:', defs.length, 'stations created');
 	}
 
 	updatePositions(): void {
@@ -49,10 +50,16 @@ export default class StationManager {
 	}
 
 	highlightProximity(playerX: number, playerY: number): void {
+		let nearest: string | null = null;
+		let minDist = Infinity;
 		this.rects.forEach(rect => {
 			const dist = Phaser.Math.Distance.Between(playerX, playerY, rect.x, rect.y);
 			rect.setAlpha(dist < STATION_PROXIMITY_RANGE ? 0.8 : 0.3);
+			if (dist < minDist) { minDist = dist; nearest = (rect as any).stationKey as string; }
 		});
+		if (DEBUG && minDist < STATION_PROXIMITY_RANGE) {
+			console.log('[StationManager] highlightProximity: nearest', nearest, 'dist', minDist.toFixed(0));
+		}
 	}
 
 	findNearest(playerX: number, playerY: number): Station | null {

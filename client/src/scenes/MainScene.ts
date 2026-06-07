@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { DECK_ZOOM, STATIONS } from '../config/gameConfig';
+import { DECK_ZOOM, STATIONS, DEBUG } from '../config/gameConfig';
 import type { EnemyData } from '../../../shared/types';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
@@ -33,6 +33,7 @@ export default class MainScene extends Phaser.Scene {
 	}
 
 	preload() {
+		if (DEBUG) console.log('[MainScene] preload: loading assets...');
 		this.load.tilemapTiledJSON('map', 'assets/maps/mapa.json');
 		this.load.image('water_tiles', 'assets/tilesets/Water and Island tiles.png');
 		this.load.image('fog_tiles', 'assets/tilesets/Fog.png');
@@ -44,7 +45,9 @@ export default class MainScene extends Phaser.Scene {
 	}
 
 	create() {
-		console.log("MainScene created");
+		if (DEBUG) console.log('[MainScene] create: started');
+		this.gameOver = false;
+		this.lastEmittedState = 'idle';
 		this.cameras.main.setBackgroundColor('#1a1a2e');
 		this.cameras.main.setZoom(DECK_ZOOM);
 
@@ -71,24 +74,21 @@ export default class MainScene extends Phaser.Scene {
 
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
-		console.log('[DEBUG] creating Ship...');
+		if (DEBUG) console.log('[MainScene] create: creating Ship...');
 		try {
 			this.ship = new Ship(this);
-			console.log('[DEBUG] Ship OK, x=', this.ship.x);
 		} catch (e) {
-			console.error('[DEBUG] Ship FAILED:', e);
+			console.error('[MainScene] create: Ship FAILED:', e);
 		}
 
-		console.log('[DEBUG] setting up island collision...');
+		if (DEBUG) console.log('[MainScene] create: setting up island collision...');
 		const islandLayers = [ilha1, ilha2, ilha3, ilha4, ilha1props, ilha2props, ilha3props, ilha4props];
 		try {
 		islandLayers.forEach(layer => {
-			if (!layer) {
-				console.warn('[Collision] Layer is null, skipping');
-				return;
-			}
+			if (!layer) return;
 
-			console.log(`[Collision] Layer "${layer.layer.name}": setting up...`);
+			if (DEBUG) console.log('[MainScene] create: setting collision for', layer.layer.name);
+
 			layer.setCollisionByProperty({ collides: true });
 
 			let collisionCount = 0;
@@ -100,43 +100,48 @@ export default class MainScene extends Phaser.Scene {
 				}
 			}
 
-			console.log(`[Collision] Layer "${layer.layer.name}": ${collisionCount} tiles marked with collides=true`);
 			if (collisionCount === 0) {
-				console.warn(`[Collision] Falling back to setCollisionByExclusion for "${layer.layer.name}"`);
+				if (DEBUG) console.log('[MainScene] create: no collides tiles, using exclusion fallback for', layer.layer.name);
 				layer.setCollisionByExclusion([-1]);
 			}
 
-			console.log(`[Collision] Converting layer "${layer.layer.name}" to Matter bodies...`);
-			try {
-				this.matter.world.convertTilemapLayer(layer, {
-					label: 'island',
-					isStatic: true,
-					collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
-				});
-				console.log(`[Collision] Layer "${layer.layer.name}" converted OK`);
-			} catch (e) {
-				console.error(`[Collision] Layer "${layer.layer.name}" FAILED:`, e);
+			let converted = 0;
+			if (layer.layer && layer.layer.data) {
+				for (const row of layer.layer.data) {
+					for (const tile of row) {
+						if (tile && tile.collides) {
+							this.matter.add.rectangle(
+								tile.getCenterX(), tile.getCenterY(),
+								tile.width, tile.height,
+								{
+									isStatic: true,
+									label: 'island',
+									collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
+								},
+							);
+							converted++;
+						}
+					}
+				}
 			}
+			if (DEBUG) console.log('[MainScene] create:', layer.layer.name, '-', collisionCount, 'collides tiles,', converted, 'bodies created');
 		});
 		} catch (e) {
-			console.error('[DEBUG] island setup FAILED:', e);
+			console.error('[MainScene] create: island setup FAILED:', e);
 		}
 
-		console.log('[DEBUG] creating PlayerManager...');
+		if (DEBUG) console.log('[MainScene] create: creating PlayerManager...');
 		this.playerManager = new PlayerManager(this, this.ship);
 		this.playerManager.createAnimations('player_1', 'player1');
 		this.playerManager.createAnimations('player_2', 'player2');
 
-		console.log('[DEBUG] creating StationManager...');
 		this.stationManager = new StationManager(this, this.ship, STATIONS);
 
-		console.log('[DEBUG] creating CannonballManager...');
 		this.cannonballManager = new CannonballManager(this);
 
-		console.log('[DEBUG] creating EnemyManager...');
 		this.enemyManager = new EnemyManager(this, this.ship);
 
-		console.log('[DEBUG] creating NetworkManager...');
+		if (DEBUG) console.log('[MainScene] create: creating NetworkManager...');
 		this.network = new NetworkManager(
 			this.ship,
 			this.playerManager,
@@ -160,9 +165,17 @@ export default class MainScene extends Phaser.Scene {
 			() => {
 				this.gameOver = true;
 				this.ship.destroy();
+				this.playerManager.sprite?.setVisible(false);
+				this.playerManager.group.getChildren().forEach((c: any) => c.setVisible(false));
+				this.enemyManager.destroyAll();
 				this.events.emit('gameOver');
 			},
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
+			() => {
+				this.gameOver = true;
+				this.scene.stop('UIScene');
+				this.scene.start('MainMenuScene');
+			},
 		);
 
 		this.prevShipX = this.ship.x;
@@ -171,7 +184,15 @@ export default class MainScene extends Phaser.Scene {
 
 		this.scene.launch('UIScene');
 
-		console.log('[DEBUG] create() DONE');
+		this.events.on('shutdown', () => {
+			this.network.disconnect();
+		});
+
+		this.events.on('requestReturnToMenu', () => {
+			this.network.emitReturnToMenu();
+		});
+
+		if (DEBUG) console.log('[MainScene] create: DONE');
 		if (this.input.keyboard) {
 			this.cursors = this.input.keyboard.createCursorKeys();
 			this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
@@ -208,7 +229,7 @@ export default class MainScene extends Phaser.Scene {
 		if (!this.playerManager.sprite) return;
 
 		if (this.playerManager.localStation !== null) {
-			this.handleStationOperation();
+			this.handleStationOperation(dt);
 		} else {
 			this.handleDeckMovement(dt);
 			this.stationManager.highlightProximity(
@@ -222,15 +243,16 @@ export default class MainScene extends Phaser.Scene {
 		}
 	}
 
-	private handleStationOperation() {
+	private handleStationOperation(dt: number) {
 		const station = this.playerManager.localStation;
 
 		if (station === 'rudder') {
-			this.ship.helmUpdate(this.cursors);
+			this.ship.helmUpdate(this.cursors, dt);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
 				this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
+				if (DEBUG) console.log('[MainScene] handleStationOperation: fired cannon', station);
 			}
 		}
 	}
@@ -273,8 +295,10 @@ export default class MainScene extends Phaser.Scene {
 				if (station === 'rudder') {
 					this.ship.setCollisionEnabled(true);
 				}
+				if (DEBUG) console.log('[MainScene] toggleStation: entered', station);
 			}
 		} else {
+			const prev = this.playerManager.localStation;
 			if (this.playerManager.localStation === 'rudder') {
 				this.ship.setCollisionEnabled(false);
 				this.ship.stopMovement();
@@ -282,6 +306,7 @@ export default class MainScene extends Phaser.Scene {
 			this.playerManager.exitStation();
 			this.applyCamera(this.stationManager.getDeckCameraConfig(this.playerManager.sprite));
 			this.network.emitStationChange(null);
+			if (DEBUG) console.log('[MainScene] toggleStation: exited', prev);
 		}
 	}
 
@@ -289,5 +314,6 @@ export default class MainScene extends Phaser.Scene {
 		this.cameras.main.setZoom(config.zoom);
 		this.cameras.main.startFollow(config.followTarget);
 		this.cameras.main.setFollowOffset(config.followOffsetX, config.followOffsetY);
+		if (DEBUG) console.log('[MainScene] applyCamera: zoom', config.zoom);
 	}
 }
