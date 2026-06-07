@@ -14,7 +14,7 @@ export interface CameraConfig {
 export default class StationManager {
 	private scene: Phaser.Scene;
 	private ship: Ship;
-	private rects: Phaser.GameObjects.Rectangle[] = [];
+	private objs: Phaser.GameObjects.GameObject[] = [];
 	private defs: StationDef[];
 
 	constructor(scene: Phaser.Scene, ship: Ship, defs: StationDef[]) {
@@ -23,14 +23,29 @@ export default class StationManager {
 		this.defs = defs;
 
 		defs.forEach(def => {
-			const rect = scene.add.rectangle(
-				this.ship.x + def.offsetX,
-				this.ship.y + def.offsetY,
-				30, 30, def.color, 0.5
-			);
-			rect.setDepth(6);
-			(rect as any).stationKey = def.key;
-			this.rects.push(rect);
+			const x = this.ship.x + def.offsetX;
+			const y = this.ship.y + def.offsetY;
+			let obj: Phaser.GameObjects.GameObject;
+
+			if (def.key === 'cannon_left' || def.key === 'cannon_right') {
+				const spr = scene.add.sprite(x, y, 'cannon');
+				spr.setScale(0.5);
+				spr.setDepth(6);
+				if (def.key === 'cannon_left') spr.setFlipX(true);
+				obj = spr;
+			} else if (def.key === 'rudder') {
+				const spr = scene.add.sprite(x, y, 'rudder');
+				spr.setScale(0.3);
+				spr.setDepth(6);
+				obj = spr;
+			} else {
+				const rect = scene.add.rectangle(x, y, 30, 30, def.color, 0.5);
+				rect.setDepth(6);
+				obj = rect;
+			}
+
+			(obj as any).stationKey = def.key;
+			this.objs.push(obj);
 		});
 		if (DEBUG) console.log('[StationManager] constructor:', defs.length, 'stations created');
 	}
@@ -38,13 +53,13 @@ export default class StationManager {
 	updatePositions(): void {
 		const cos = Math.cos(this.ship.rotation);
 		const sin = Math.sin(this.ship.rotation);
-		this.rects.forEach(r => {
-			const key = (r as any).stationKey as Station;
+		this.objs.forEach(obj => {
+			const key = (obj as any).stationKey as Station;
 			const def = this.defs.find(d => d.key === key);
 			if (def) {
-				r.x = this.ship.x + def.offsetX * cos - def.offsetY * sin;
-				r.y = this.ship.y + def.offsetX * sin + def.offsetY * cos;
-				r.setRotation(this.ship.rotation);
+				(obj as any).x = this.ship.x + def.offsetX * cos - def.offsetY * sin;
+				(obj as any).y = this.ship.y + def.offsetX * sin + def.offsetY * cos;
+				(obj as any).setRotation(this.ship.rotation);
 			}
 		});
 	}
@@ -52,10 +67,10 @@ export default class StationManager {
 	highlightProximity(playerX: number, playerY: number): void {
 		let nearest: string | null = null;
 		let minDist = Infinity;
-		this.rects.forEach(rect => {
-			const dist = Phaser.Math.Distance.Between(playerX, playerY, rect.x, rect.y);
-			rect.setAlpha(dist < STATION_PROXIMITY_RANGE ? 0.8 : 0.3);
-			if (dist < minDist) { minDist = dist; nearest = (rect as any).stationKey as string; }
+		this.objs.forEach(obj => {
+			const dist = Phaser.Math.Distance.Between(playerX, playerY, (obj as any).x, (obj as any).y);
+			(obj as any).setAlpha(dist < STATION_PROXIMITY_RANGE ? 1 : 0.7);
+			if (dist < minDist) { minDist = dist; nearest = (obj as any).stationKey as string; }
 		});
 		if (DEBUG && minDist < STATION_PROXIMITY_RANGE) {
 			console.log('[StationManager] highlightProximity: nearest', nearest, 'dist', minDist.toFixed(0));
@@ -63,10 +78,10 @@ export default class StationManager {
 	}
 
 	findNearest(playerX: number, playerY: number): Station | null {
-		for (const rect of this.rects) {
-			const dist = Phaser.Math.Distance.Between(playerX, playerY, rect.x, rect.y);
+		for (const obj of this.objs) {
+			const dist = Phaser.Math.Distance.Between(playerX, playerY, (obj as any).x, (obj as any).y);
 			if (dist < STATION_PROXIMITY_RANGE) {
-				return (rect as any).stationKey as Station;
+				return (obj as any).stationKey as Station;
 			}
 		}
 		return null;

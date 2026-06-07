@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CANNONBALL_SPEED, CANNONBALL_LIFE, DEBUG } from '../config/gameConfig';
+import { CANNONBALL_SPEED, CANNONBALL_LIFE, ENEMY_CATEGORY, CANNONBALL_HIT_RADIUS, DEBUG } from '../config/gameConfig';
 
 const CANNONBALL_CATEGORY = 0x0004;
 
@@ -21,7 +21,8 @@ export default class CannonballManager {
 		const spawnX = shipX + (localX*45) * cos;
 		const spawnY = -10 + shipY + (localX*45) * sin;
 
-		const ball = this.scene.add.circle(spawnX, spawnY, 4, 0xff8800);
+		const ball = this.scene.add.sprite(spawnX, spawnY, 'cannonball');
+		ball.setScale(0.25);
 		ball.setDepth(15);
 
 		this.scene.matter.add.gameObject(ball, {
@@ -29,7 +30,7 @@ export default class CannonballManager {
 			label: 'cannonball',
 			frictionAir: 0,
 			restitution: 0,
-			collisionFilter: { category: CANNONBALL_CATEGORY, mask: 0x0000, group: 0 },
+			collisionFilter: { category: CANNONBALL_CATEGORY, mask: ENEMY_CATEGORY, group: 0 },
 		});
 
 		const speed = CANNONBALL_SPEED * 60;
@@ -52,5 +53,25 @@ export default class CannonballManager {
 		});
 		const after = this.group.getLength();
 		if (DEBUG && before !== after) console.log('[CannonballManager] update:', before - after, 'destroyed,', after, 'remaining');
+	}
+
+	checkEnemyCollisions(enemies: Phaser.GameObjects.Group): string[] {
+		const hits: string[] = [];
+		const toRemove: any[] = [];
+
+		this.group.getChildren().forEach((ball: any) => {
+			enemies.getChildren().forEach((enemy: any) => {
+				const d = Phaser.Math.Distance.Between(ball.x, ball.y, enemy.x, enemy.y);
+				if (d < CANNONBALL_HIT_RADIUS) {
+					hits.push(enemy.enemyId as string);
+					toRemove.push(ball);
+				}
+			});
+		});
+
+		toRemove.forEach(b => b.destroy());
+
+		if (DEBUG && hits.length > 0) console.log('[CannonballManager] checkEnemyCollisions:', hits.length, 'hits');
+		return hits;
 	}
 }
