@@ -197,7 +197,7 @@ export default class NetworkManager {
 	}
 
 	emitShipMove(x: number, y: number, angle: number): void {
-		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id);
+		const positions = this.playerManager.getPlayerWorldPositions(this.socket.id!);
 		if (DEBUG) console.log('[NetworkManager] emitShipMove:', x.toFixed(0), y.toFixed(0), angle.toFixed(3), Object.keys(positions).length, 'players');
 		this.socket.emit('shipMove', { x, y, angle, players: positions });
 	}

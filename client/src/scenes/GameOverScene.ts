@@ -23,6 +23,7 @@ export default class GameOverScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(1);
 
+
     this.time.delayedCall(1000, () => {
       const btnW = 240;
       const btnH = 64;
