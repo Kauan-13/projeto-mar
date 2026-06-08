@@ -189,16 +189,18 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipY = this.ship.y;
 		this.prevShipAngle = this.ship.rotation;
 
+		this.scene.launch('UIScene');
+
 		const initialState = this.registry.get('initialGameState') as GameStartedData | undefined;
 		if (initialState) {
 			this.ship.sprite.x = initialState.shipX;
 			this.ship.sprite.y = initialState.shipY;
 			this.ship.sprite.rotation = initialState.shipAngle;
-			this.network.initializeFromState(initialState);
-			if (DEBUG) console.log('[MainScene] create: initialized from lobby state');
+			this.time.delayedCall(0, () => {
+				this.network.initializeFromState(initialState);
+			});
+			if (DEBUG) console.log('[MainScene] create: will initialize from lobby state next frame');
 		}
-
-		this.scene.launch('UIScene');
 
 		this.events.on('shutdown', () => {
 			this.network.disconnect();
