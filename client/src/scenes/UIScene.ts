@@ -22,6 +22,7 @@ export default class UIScene extends Phaser.Scene {
 			.setOrigin(0, 0).setDepth(1);
 
 		this.scene.get('MainScene').events.on('updateHealth', (pct: number) => {
+			if (!this.hpBarFill) return;
 			this.hpBarFill.setSize(Math.max(0, (pct / 100) * 180), 16);
 			if (pct > 50) {
 				this.hpBarFill.setFillStyle(0x44cc44);

@@ -94,10 +94,10 @@ export default class MainMenuScene extends Phaser.Scene {
   }
 
   private startGame() {
-    if (DEBUG) console.log('[MainMenuScene] startGame: stopping music, starting MainScene');
+    if (DEBUG) console.log('[MainMenuScene] startGame: stopping music, starting LobbyScene');
     if (this.music && this.music.isPlaying) {
       this.music.stop();
     }
-    this.scene.start('MainScene');
+    this.scene.start('LobbyScene');
   }
 }

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { DECK_ZOOM, STATIONS, DEBUG } from '../config/gameConfig';
-import type { EnemyData } from '../../../shared/types';
+import type { EnemyData, GameStartedData } from '../../../shared/types';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
@@ -145,10 +145,12 @@ export default class MainScene extends Phaser.Scene {
 		this.enemyManager = new EnemyManager(this, this.ship);
 
 		if (DEBUG) console.log('[MainScene] create: creating NetworkManager...');
+		const lobbySocket = this.registry.get('lobbySocket') as any;
 		this.network = new NetworkManager(
 			this.ship,
 			this.playerManager,
 			this.stationManager,
+			lobbySocket,
 			(x: number, y: number) => {
 				this.cameras.main.centerOn(x, y);
 				this.cameras.main.startFollow(this.playerManager.sprite);
@@ -186,6 +188,15 @@ export default class MainScene extends Phaser.Scene {
 		this.prevShipX = this.ship.x;
 		this.prevShipY = this.ship.y;
 		this.prevShipAngle = this.ship.rotation;
+
+		const initialState = this.registry.get('initialGameState') as GameStartedData | undefined;
+		if (initialState) {
+			this.ship.sprite.x = initialState.shipX;
+			this.ship.sprite.y = initialState.shipY;
+			this.ship.sprite.rotation = initialState.shipAngle;
+			this.network.initializeFromState(initialState);
+			if (DEBUG) console.log('[MainScene] create: initialized from lobby state');
+		}
 
 		this.scene.launch('UIScene');
 

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { PlayerData, Station, PlayerState, PlayerDirection, EnemyData } from '../../../shared/types';
+import type { PlayerData, Station, PlayerState, PlayerDirection, EnemyData, GameStartedData } from '../../../shared/types';
 import { DEBUG } from '../config/gameConfig';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
@@ -9,6 +9,7 @@ export default class NetworkManager {
 	private socket: Socket;
 	private playerManager: PlayerManager;
 	private onShipSynced?: () => void;
+	private onLocalPlayerCreated?: (x: number, y: number) => void;
 	private onEnemySpawned?: (id: string, x: number, y: number, hp: number, maxHp: number) => void;
 	private onEnemyDestroyed?: (id: string) => void;
 	private onEnemyDamaged?: (id: string, hp: number) => void;
@@ -21,7 +22,8 @@ export default class NetworkManager {
 		ship: Ship,
 		playerManager: PlayerManager,
 		stationManager: StationManager,
-		onLocalPlayerCreated: (x: number, y: number) => void,
+		existingSocket?: Socket,
+		onLocalPlayerCreated?: (x: number, y: number) => void,
 		onShipSyncedFromNetwork?: () => void,
 		onEnemyState?: (enemies: EnemyData[], hpPct: number) => void,
 		onEnemySpawned?: (id: string, x: number, y: number, hp: number, maxHp: number) => void,
@@ -34,6 +36,7 @@ export default class NetworkManager {
 	) {
 		this.onShipSynced = onShipSyncedFromNetwork;
 		this.playerManager = playerManager;
+		this.onLocalPlayerCreated = onLocalPlayerCreated;
 		this.onEnemySpawned = onEnemySpawned;
 		this.onEnemyDestroyed = onEnemyDestroyed;
 		this.onEnemyDamaged = onEnemyDamaged;
@@ -41,22 +44,10 @@ export default class NetworkManager {
 		this.onGameOver = onGameOver;
 		this.onEnemiesMoved = onEnemiesMoved;
 		this.onReturnToMenu = onReturnToMenu;
-		this.socket = io('http://localhost:3000');
+		this.socket = existingSocket ?? io();
 
 		this.socket.on('connect', () => {
 			if (DEBUG) console.log('[NetworkManager] connect: connected, id', this.socket.id);
-		});
-
-		this.socket.on('currentPlayers', (players: { [id: string]: PlayerData }) => {
-			if (DEBUG) console.log('[NetworkManager] currentPlayers:', Object.keys(players).length, 'players received');
-			Object.keys(players).forEach((id) => {
-				if (players[id].id === this.socket.id) {
-					playerManager.createLocalPlayer(players[id].x, players[id].y);
-					onLocalPlayerCreated(players[id].x, players[id].y);
-				} else {
-					playerManager.addRemotePlayer(players[id]);
-				}
-			});
 		});
 
 		this.socket.on('playerJoined', (playerInfo: PlayerData) => {
@@ -228,5 +219,20 @@ export default class NetworkManager {
 	emitReturnToMenu(): void {
 		if (DEBUG) console.log('[NetworkManager] emitReturnToMenu');
 		this.socket.emit('returnToMenu');
+	}
+
+	initializeFromState(state: GameStartedData): void {
+		const myId = this.socket.id;
+		if (myId && state.players[myId]) {
+			const me = state.players[myId];
+			this.playerManager.createLocalPlayer(me.x, me.y);
+			this.onLocalPlayerCreated?.(me.x, me.y);
+		}
+		Object.keys(state.players).forEach(id => {
+			if (id !== myId) {
+				this.playerManager.addRemotePlayer(state.players[id]);
+			}
+		});
+		this.onShipDamaged?.(state.hpPct);
 	}
 }
