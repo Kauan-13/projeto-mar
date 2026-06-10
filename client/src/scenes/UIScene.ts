@@ -4,6 +4,7 @@ import { DEBUG } from '../config/gameConfig';
 export default class UIScene extends Phaser.Scene {
 	private hpBarBg!: Phaser.GameObjects.Rectangle;
 	private hpBarFill!: Phaser.GameObjects.Rectangle;
+	private scoreText!: Phaser.GameObjects.Text;
 
 	constructor() {
 		super('UIScene');
@@ -20,6 +21,16 @@ export default class UIScene extends Phaser.Scene {
 			.setOrigin(0, 0).setDepth(0);
 		this.hpBarFill = this.add.rectangle(barX, barY, barW, barH, 0x44cc44)
 			.setOrigin(0, 0).setDepth(1);
+
+		this.scoreText = this.add.text(this.cameras.main.width - 16, 14, 'Pontuação: 0', {
+			fontFamily: 'monospace', fontSize: '20px', color: '#ffffff',
+			stroke: '#000000', strokeThickness: 3,
+		}).setOrigin(1, 0).setDepth(10);
+
+		this.scene.get('MainScene').events.on('updateScore', (score: number) => {
+			if (!this.scoreText) return;
+			this.scoreText.setText('Pontuação: ' + String(Math.floor(score)));
+		});
 
 		this.scene.get('MainScene').events.on('updateHealth', (pct: number) => {
 			if (!this.hpBarFill) return;

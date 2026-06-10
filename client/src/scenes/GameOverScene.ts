@@ -6,10 +6,11 @@ export default class GameOverScene extends Phaser.Scene {
     super('GameOverScene');
   }
 
-  create() {
-    if (DEBUG) console.log('[GameOverScene] create: started');
+  create(data: { score?: number }) {
+    if (DEBUG) console.log('[GameOverScene] create: started, score', data?.score ?? 'none');
     const w = this.cameras.main.width;
     const h = this.cameras.main.height;
+    const finalScore = data?.score ?? 0;
 
     this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.85).setDepth(0);
 
@@ -21,6 +22,11 @@ export default class GameOverScene extends Phaser.Scene {
     this.add.text(w / 2, h * 0.3 + 60, 'Seu navio foi destruído!', {
       fontFamily: 'monospace', fontSize: '24px', color: '#ffffff',
       stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(1);
+
+    this.add.text(w / 2, h * 0.3 + 100, `Pontuação: ${finalScore}`, {
+      fontFamily: 'monospace', fontSize: '20px', color: '#ffcc44',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
 
 

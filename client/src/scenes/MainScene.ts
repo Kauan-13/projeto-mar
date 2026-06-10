@@ -168,15 +168,16 @@ export default class MainScene extends Phaser.Scene {
 			(id: string) => this.enemyManager.removeEnemy(id),
 			(id: string, hp: number) => this.enemyManager.setEnemyHp(id, hp),
 			(hpPct: number) => this.events.emit('updateHealth', hpPct),
-			() => {
+			(data: { score: number }) => {
 				this.gameOver = true;
 				this.ship.destroy();
-				if (DEBUG) console.log('[MainScene] gameOver: waiting 2s before transition');
+				if (DEBUG) console.log('[MainScene] gameOver: score', data.score, 'waiting 2s before transition');
 				this.time.delayedCall(2000, () => {
 					this.scene.stop('UIScene');
-					this.scene.start('GameOverScene');
+					this.scene.start('GameOverScene', { score: data.score });
 				});
 			},
+			(score: number) => this.events.emit('updateScore', score),
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
 			() => {
 				this.gameOver = true;

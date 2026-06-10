@@ -84,4 +84,9 @@ export interface GameStartedData {
     shipY: number;
     shipAngle: number;
     hpPct: number;
+    score: number;
+}
+
+export interface GameOverData {
+    score: number;
 }
