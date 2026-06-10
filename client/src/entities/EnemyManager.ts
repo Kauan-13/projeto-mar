@@ -16,12 +16,14 @@ export default class EnemyManager {
 		this.ship = ship;
 		this.group = scene.add.group();
 
-		scene.anims.create({
-			key: 'enemy_walk',
-			frames: scene.anims.generateFrameNumbers('enemy', { start: 0, end: 5 }),
-			frameRate: 6,
-			repeat: -1,
-		});
+		if (!scene.anims.exists('enemy_walk')) {
+			scene.anims.create({
+				key: 'enemy_walk',
+				frames: scene.anims.generateFrameNumbers('enemy', { start: 0, end: 5 }),
+				frameRate: 6,
+				repeat: -1,
+			});
+		}
 		if (DEBUG) console.log('[EnemyManager] constructor: created, animation enemy_walk registered');
 	}
 

@@ -67,5 +67,21 @@ export const ENEMY_SPAWN_INTERVAL_MS = 1000;
 export const ENEMY_SPAWN_MARGIN = 80;
 export const MAP_WIDTH = 1280;
 export const MAP_HEIGHT = 1280;
-export const ENEMY_SERVER_SPEED = 2.5;
+export const ENEMY_SERVER_SPEED = 9.5;
 export const ENEMY_HIT_DISTANCE = 100;
+export const MAX_PLAYERS_PER_LOBBY = 3;
+export const LOBBY_CODE_LENGTH = 6;
+
+export interface LobbyState {
+    code: string;
+    players: Record<string, PlayerData>;
+    hostId: string;
+}
+
+export interface GameStartedData {
+    players: Record<string, PlayerData>;
+    shipX: number;
+    shipY: number;
+    shipAngle: number;
+    hpPct: number;
+}

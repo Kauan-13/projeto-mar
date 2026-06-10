@@ -23,6 +23,10 @@ export default class PlayerManager {
 	}
 
 	createAnimations(textureKey: string, prefix: string): void {
+		if (this.scene.anims.exists(`${prefix}_idle_down`)) {
+			if (DEBUG) console.log('[PlayerManager] createAnimations: skipping', prefix, '(already exists)');
+			return;
+		}
 		const gen = (start: number, end: number) =>
 			this.scene.anims.generateFrameNumbers(textureKey, { start, end });
 

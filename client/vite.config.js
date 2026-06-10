@@ -5,7 +5,13 @@ export default {
         outDir: '../../dist',
     },
     server: {
-        host: "0.0.0.0",
-        port: 5173
+        port: 5173,
+        host: true,
+        proxy: {
+            '/socket.io': {
+                target: 'http://localhost:3000',
+                ws: true,
+            }
+        }
     }
 }
