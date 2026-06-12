@@ -28,6 +28,8 @@ export default class MainScene extends Phaser.Scene {
 	private prevShipY!: number;
 	private prevShipAngle!: number;
 	private gameOver = false;
+	private hasMoved = false;
+	private cannonHintShown = false;
 
 	constructor() {
 		super('MainScene');
@@ -46,11 +48,15 @@ export default class MainScene extends Phaser.Scene {
 		this.load.image('cannon', 'assets/sprites/objects/cannon.png');
 		this.load.image('cannonball', 'assets/sprites/objects/cannonball.png');
 		this.load.image('rudder', 'assets/sprites/objects/rudder.png');
+		this.load.image('controls_icon', 'assets/control.png');
+		this.load.image('space_icon', 'assets/space-button.png');
 	}
 
 	create() {
 		if (DEBUG) console.log('[MainScene] create: started');
 		this.gameOver = false;
+		this.hasMoved = false;
+		this.cannonHintShown = false;
 		this.lastEmittedState = 'idle';
 		this.cameras.main.setBackgroundColor('#1a1a2e');
 		this.cameras.main.setZoom(DECK_ZOOM);
@@ -262,6 +268,7 @@ export default class MainScene extends Phaser.Scene {
 		if (!this.playerManager.sprite) return;
 
 		if (this.playerManager.localStation !== null) {
+			this.stationManager.hideAllHints();
 			this.handleStationOperation(dt);
 		} else {
 			this.handleDeckMovement(dt);
@@ -283,6 +290,10 @@ export default class MainScene extends Phaser.Scene {
 			this.ship.helmUpdate(this.cursors, dt);
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+				if (!this.cannonHintShown) {
+					this.cannonHintShown = true;
+					this.events.emit('cannonFiredFirst');
+				}
 				const direction = station === 'cannon_left' ? -1 : 1;
 				const data = this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
 				this.network.emitCannonFired(data.x, data.y, data.vx, data.vy);
@@ -295,6 +306,10 @@ export default class MainScene extends Phaser.Scene {
 		const moved = this.playerManager.moveOnDeck(this.cursors, dt);
 
 		if (moved) {
+			if (!this.hasMoved) {
+				this.hasMoved = true;
+				this.events.emit('playerFirstMoved');
+			}
 			this.network.emitPlayerMovement(
 				this.playerManager.sprite.x,
 				this.playerManager.sprite.y,
@@ -328,6 +343,9 @@ export default class MainScene extends Phaser.Scene {
 				this.network.emitStationChange(station);
 				if (station === 'rudder') {
 					this.ship.setCollisionEnabled(true);
+				}
+				if (station === 'cannon_left' || station === 'cannon_right') {
+					this.events.emit('enteredCannon');
 				}
 				if (DEBUG) console.log('[MainScene] toggleStation: entered', station);
 			}

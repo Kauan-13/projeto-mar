@@ -45,6 +45,13 @@ export default class StationManager {
 			}
 
 			(obj as any).stationKey = def.key;
+
+			const hintText = scene.add.text(x, y - 24, 'aperte E', {
+				fontFamily: 'monospace', fontSize: '20px', color: '#ffffff',
+				stroke: '#000000', strokeThickness: 2,
+			}).setOrigin(0.5, 1).setDepth(20).setVisible(false);
+			(obj as any).hintText = hintText;
+
 			this.objs.push(obj);
 		});
 		if (DEBUG) console.log('[StationManager] constructor:', defs.length, 'stations created');
@@ -61,6 +68,11 @@ export default class StationManager {
 				(obj as any).y = this.ship.y + def.offsetX * sin + def.offsetY * cos;
 				(obj as any).setRotation(this.ship.rotation);
 			}
+			const hint = (obj as any).hintText;
+			if (hint) {
+				hint.setPosition((obj as any).x, (obj as any).y - 24);
+				hint.setRotation(0);
+			}
 		});
 	}
 
@@ -69,7 +81,17 @@ export default class StationManager {
 		let minDist = Infinity;
 		this.objs.forEach(obj => {
 			const dist = Phaser.Math.Distance.Between(playerX, playerY, (obj as any).x, (obj as any).y);
-			(obj as any).setAlpha(dist < STATION_PROXIMITY_RANGE ? 1 : 0.7);
+			const isNear = dist < STATION_PROXIMITY_RANGE;
+			(obj as any).setAlpha(isNear ? 1 : 0.7);
+			if (isNear) {
+				(obj as any).setTint(0xfff5d6);
+			} else {
+				(obj as any).clearTint();
+			}
+			const hint = (obj as any).hintText;
+			if (hint) {
+				hint.setVisible(isNear);
+			}
 			if (dist < minDist) { minDist = dist; nearest = (obj as any).stationKey as string; }
 		});
 		if (DEBUG && minDist < STATION_PROXIMITY_RANGE) {
@@ -117,5 +139,12 @@ export default class StationManager {
 
 	getDeckCameraConfig(player: Phaser.GameObjects.Sprite): CameraConfig {
 		return { zoom: 2.2, followTarget: player, followOffsetX: 0, followOffsetY: 0 };
+	}
+
+	hideAllHints(): void {
+		this.objs.forEach(obj => {
+			const hint = (obj as any).hintText;
+			if (hint) hint.setVisible(false);
+		});
 	}
 }
