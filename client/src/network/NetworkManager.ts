@@ -14,7 +14,8 @@ export default class NetworkManager {
 	private onEnemyDestroyed?: (id: string) => void;
 	private onEnemyDamaged?: (id: string, hp: number) => void;
 	private onShipDamaged?: (hpPct: number) => void;
-	private onGameOver?: () => void;
+	private onGameOver?: (data: { score: number }) => void;
+	private onScoreUpdated?: (score: number) => void;
 	private onEnemiesMoved?: (enemies: EnemyData[]) => void;
 	private onReturnToMenu?: () => void;
 
@@ -30,7 +31,8 @@ export default class NetworkManager {
 		onEnemyDestroyed?: (id: string) => void,
 		onEnemyDamaged?: (id: string, hp: number) => void,
 		onShipDamaged?: (hpPct: number) => void,
-		onGameOver?: () => void,
+		onGameOver?: (data: { score: number }) => void,
+		onScoreUpdated?: (score: number) => void,
 		onEnemiesMoved?: (enemies: EnemyData[]) => void,
 		onReturnToMenu?: () => void,
 	) {
@@ -42,6 +44,7 @@ export default class NetworkManager {
 		this.onEnemyDamaged = onEnemyDamaged;
 		this.onShipDamaged = onShipDamaged;
 		this.onGameOver = onGameOver;
+		this.onScoreUpdated = onScoreUpdated;
 		this.onEnemiesMoved = onEnemiesMoved;
 		this.onReturnToMenu = onReturnToMenu;
 		this.socket = existingSocket ?? io();
@@ -171,9 +174,14 @@ export default class NetworkManager {
       this.onShipDamaged?.(data.hpPct);
     });
 
-    this.socket.on('gameOver', () => {
-			if (DEBUG) console.log('[NetworkManager] gameOver');
-      this.onGameOver?.();
+    this.socket.on('gameOver', (data: { score: number }) => {
+			if (DEBUG) console.log('[NetworkManager] gameOver: score', data.score);
+      this.onGameOver?.(data);
+    });
+
+    this.socket.on('scoreUpdated', (data: { score: number }) => {
+			if (DEBUG) console.log('[NetworkManager] scoreUpdated:', data.score);
+      this.onScoreUpdated?.(data.score);
     });
 
     this.socket.on('enemiesMoved', (data: { enemies: EnemyData[] }) => {
@@ -234,5 +242,6 @@ export default class NetworkManager {
 			}
 		});
 		this.onShipDamaged?.(state.hpPct);
+		this.onScoreUpdated?.(state.score);
 	}
 }

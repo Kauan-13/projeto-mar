@@ -25,6 +25,7 @@ interface LobbyData {
   shipY: number;
   shipAngle: number;
   shipHp: number;
+  score: number;
   enemies: Record<string, EnemyData>;
   enemyIdCounter: number;
 }
@@ -107,6 +108,7 @@ io.on('connection', (socket: Socket) => {
         players: {},
         shipX: SHIP_X, shipY: SHIP_Y, shipAngle: 0,
         shipHp: SHIP_MAX_HP,
+        score: 0,
         enemies: {}, enemyIdCounter: 0,
       };
       const player = createPlayer(socket.id, lobby.shipX, lobby.shipY);
@@ -157,6 +159,7 @@ io.on('connection', (socket: Socket) => {
       players: lobby.players,
       shipX: lobby.shipX, shipY: lobby.shipY, shipAngle: lobby.shipAngle,
       hpPct: (lobby.shipHp / SHIP_MAX_HP) * 100,
+      score: lobby.score,
     };
     emitToLobby(lobby.code, 'gameStarted', state);
     if (DEBUG) console.log(`[Server] startGame: ${lobby.code} started with ${Object.keys(lobby.players).length} players`);
@@ -239,7 +242,9 @@ io.on('connection', (socket: Socket) => {
     e.hp = Math.max(0, e.hp - CANNON_DAMAGE);
     if (e.hp <= 0) {
       delete lobby.enemies[data.enemyId];
+      lobby.score++;
       emitToLobby(lobby.code, 'enemyDestroyed', { id: data.enemyId });
+      emitToLobby(lobby.code, 'scoreUpdated', { score: lobby.score });
     } else {
       emitToLobby(lobby.code, 'enemyDamaged', { id: data.enemyId, hp: e.hp });
     }
@@ -337,8 +342,8 @@ setInterval(() => {
       emitToLobby(code, 'shipDamaged', { hp: lobby.shipHp, hpPct: (lobby.shipHp / SHIP_MAX_HP) * 100 });
       if (DEBUG) console.log('[Server] enemy hit:', code, id, 'destroyed, ship HP', lobby.shipHp);
       if (lobby.shipHp <= 0) {
-        emitToLobby(code, 'gameOver');
-        if (DEBUG) console.log('[Server] gameOver:', code);
+        emitToLobby(lobby.code, 'gameOver', { score: lobby.score });
+        if (DEBUG) console.log('[Server] gameOver:', code, 'score', lobby.score);
         break;
       }
     }

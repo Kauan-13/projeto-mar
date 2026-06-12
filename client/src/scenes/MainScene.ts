@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { DECK_ZOOM, STATIONS, DEBUG } from '../config/gameConfig';
 import type { EnemyData, GameStartedData } from '../../../shared/types';
+import { MAP_WIDTH, MAP_HEIGHT } from '../../../shared/types';
 import Ship from '../entities/Ship';
 import PlayerManager from '../entities/PlayerManager';
 import StationManager from '../systems/StationManager';
@@ -72,8 +73,9 @@ export default class MainScene extends Phaser.Scene {
 		const ilha4 = map.createLayer('ilha4', allTilesets);
 		const ilha4props = map.createLayer('ilha4props', allTilesets);
 
-		const allLayers = [marLayer, nevoaLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props];
-		allLayers.forEach(l => l?.setDepth(0));
+		[marLayer, ilha1, ilha1props, ilha2, ilha2props, ilha3, ilha3props, ilha4, ilha4props]
+			.forEach(l => l?.setDepth(0));
+		nevoaLayer?.setDepth(20).setAlpha(0.6);
 
 		this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
@@ -133,6 +135,18 @@ export default class MainScene extends Phaser.Scene {
 			console.error('[MainScene] create: island setup FAILED:', e);
 		}
 
+		if (DEBUG) console.log('[MainScene] create: setting up map borders...');
+		const WALL_THICKNESS = 40;
+		const wallOpts: Phaser.Types.Physics.Matter.MatterBodyConfig = {
+			isStatic: true,
+			label: 'map_border',
+			collisionFilter: { category: ISLAND_CATEGORY, mask: SHIP_CATEGORY, group: 0 },
+		};
+		this.matter.add.rectangle(MAP_WIDTH / 2, -WALL_THICKNESS / 2, MAP_WIDTH, WALL_THICKNESS, wallOpts);
+		this.matter.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT + WALL_THICKNESS / 2, MAP_WIDTH, WALL_THICKNESS, wallOpts);
+		this.matter.add.rectangle(-WALL_THICKNESS / 2, MAP_HEIGHT / 2, WALL_THICKNESS, MAP_HEIGHT, wallOpts);
+		this.matter.add.rectangle(MAP_WIDTH + WALL_THICKNESS / 2, MAP_HEIGHT / 2, WALL_THICKNESS, MAP_HEIGHT, wallOpts);
+
 		if (DEBUG) console.log('[MainScene] create: creating PlayerManager...');
 		this.playerManager = new PlayerManager(this, this.ship);
 		this.playerManager.createAnimations('player_1', 'player1');
@@ -168,15 +182,16 @@ export default class MainScene extends Phaser.Scene {
 			(id: string) => this.enemyManager.removeEnemy(id),
 			(id: string, hp: number) => this.enemyManager.setEnemyHp(id, hp),
 			(hpPct: number) => this.events.emit('updateHealth', hpPct),
-			() => {
+			(data: { score: number }) => {
 				this.gameOver = true;
 				this.ship.destroy();
-				if (DEBUG) console.log('[MainScene] gameOver: waiting 2s before transition');
+				if (DEBUG) console.log('[MainScene] gameOver: score', data.score, 'waiting 2s before transition');
 				this.time.delayedCall(2000, () => {
 					this.scene.stop('UIScene');
-					this.scene.start('GameOverScene');
+					this.scene.start('GameOverScene', { score: data.score });
 				});
 			},
+			(score: number) => this.events.emit('updateScore', score),
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
 			() => {
 				this.gameOver = true;
