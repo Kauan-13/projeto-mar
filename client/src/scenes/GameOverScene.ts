@@ -29,6 +29,62 @@ export default class GameOverScene extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
 
+    // ====================================================================
+    // INTEGRAÇÃO COM A FEIRA DE JOGOS
+    // ====================================================================
+    // Para ativar a integração, siga os passos abaixo:
+    //
+    // 1. Instale a dependência axios (já está no package.json):
+    //    cd client && npm install axios
+    //
+    // 2. Descomente a tag <script> no arquivo index.html:
+    //    client/src/index.html → <!-- <script src="https://accounts.google.com/gsi/client" async></script> -->
+    //
+    // 3. Descomente todo o bloco abaixo (linhas 37..72).
+    //
+    // 4. Substitua o valor de 'product' pelo ID numérico do jogo
+    //    "They Will Drown" no banco de dados da Feira de Jogos.
+    //    O professor responsável terá essa informação.
+    //
+    // 5. O parâmetro 'value' é a pontuação que os jogadores fizeram
+    //    (finalScore). Ele será creditado na conta do jogador na feira.
+    //
+    // import axios from "axios";
+    //
+    // const fdjScore = finalScore;
+    // google.accounts.id.initialize({
+    //   client_id:
+    //     "331191695151-ku8mdhd76pc2k36itas8lm722krn0u64.apps.googleusercontent.com",
+    //   callback: (res: any) => {
+    //     if (res.error) {
+    //       console.error(res.error);
+    //     } else {
+    //       axios
+    //         .post(
+    //           "https://feira-de-jogos.dev.br/api/v2/credit",
+    //           {
+    //             product: "They Will Drown", // ← troque pelo ID numérico do jogo
+    //             value: fdjScore,
+    //           },
+    //           {
+    //             headers: {
+    //               Authorization: `Bearer ${res.credential}`,
+    //             },
+    //           },
+    //         )
+    //         .then((response: any) => {
+    //           console.log(response);
+    //           alert("Crédito adicionado! Você ganhou " + fdjScore + " tijolinhos.");
+    //         })
+    //         .catch((error: any) => {
+    //           console.error(error);
+    //           alert("Erro ao adicionar crédito :(");
+    //         });
+    //     }
+    //   },
+    // });
+    // google.accounts.id.prompt();
+    // ====================================================================
 
     this.time.delayedCall(1000, () => {
       const btnW = 240;

@@ -192,6 +192,7 @@ export default class MainScene extends Phaser.Scene {
 				});
 			},
 			(score: number) => this.events.emit('updateScore', score),
+			(x: number, y: number, vx: number, vy: number) => this.cannonballManager.spawnVisual(x, y, vx, vy),
 			(enemies: EnemyData[]) => this.enemyManager.setEnemyPositions(enemies),
 			() => {
 				this.gameOver = true;
@@ -283,7 +284,8 @@ export default class MainScene extends Phaser.Scene {
 		} else if (station === 'cannon_left' || station === 'cannon_right') {
 			if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
 				const direction = station === 'cannon_left' ? -1 : 1;
-				this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
+				const data = this.cannonballManager.fire(this.ship.x, this.ship.y, this.ship.rotation, direction);
+				this.network.emitCannonFired(data.x, data.y, data.vx, data.vy);
 				if (DEBUG) console.log('[MainScene] handleStationOperation: fired cannon', station);
 			}
 		}

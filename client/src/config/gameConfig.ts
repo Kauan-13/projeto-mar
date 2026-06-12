@@ -22,7 +22,7 @@ export const CANNONBALL_SPEED = 0.1;
 export const CANNONBALL_LIFE = 50;
 export const STATION_PROXIMITY_RANGE = 20;
 
-export const DEBUG = true;
+export const DEBUG = false;
 
 export const ENEMY_CATEGORY = 0x0008;
 export const CANNONBALL_HIT_RADIUS = 30;

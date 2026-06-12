@@ -13,11 +13,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.17.0",
     "phaser": "^3.80.1",
     "phaser3-rex-plugins": "^1.80.20",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@types/google.accounts": "^0.0.18",
     "vite": "^5.4.21"
   }
 }
