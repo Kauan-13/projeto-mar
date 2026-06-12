@@ -16,6 +16,7 @@ export default class NetworkManager {
 	private onShipDamaged?: (hpPct: number) => void;
 	private onGameOver?: (data: { score: number }) => void;
 	private onScoreUpdated?: (score: number) => void;
+	private onCannonFired?: (x: number, y: number, vx: number, vy: number) => void;
 	private onEnemiesMoved?: (enemies: EnemyData[]) => void;
 	private onReturnToMenu?: () => void;
 
@@ -33,6 +34,7 @@ export default class NetworkManager {
 		onShipDamaged?: (hpPct: number) => void,
 		onGameOver?: (data: { score: number }) => void,
 		onScoreUpdated?: (score: number) => void,
+		onCannonFired?: (x: number, y: number, vx: number, vy: number) => void,
 		onEnemiesMoved?: (enemies: EnemyData[]) => void,
 		onReturnToMenu?: () => void,
 	) {
@@ -45,6 +47,7 @@ export default class NetworkManager {
 		this.onShipDamaged = onShipDamaged;
 		this.onGameOver = onGameOver;
 		this.onScoreUpdated = onScoreUpdated;
+		this.onCannonFired = onCannonFired;
 		this.onEnemiesMoved = onEnemiesMoved;
 		this.onReturnToMenu = onReturnToMenu;
 		this.socket = existingSocket ?? io();
@@ -188,6 +191,10 @@ export default class NetworkManager {
       this.onEnemiesMoved?.(data.enemies);
     });
 
+    this.socket.on('cannonFired', (data: { x: number; y: number; vx: number; vy: number }) => {
+      this.onCannonFired?.(data.x, data.y, data.vx, data.vy);
+    });
+
     this.socket.on('returnToMenu', () => {
 			if (DEBUG) console.log('[NetworkManager] returnToMenu');
       this.onReturnToMenu?.();
@@ -213,6 +220,11 @@ export default class NetworkManager {
 	emitCannonHit(enemyId: string): void {
 		if (DEBUG) console.log('[NetworkManager] emitCannonHit:', enemyId);
 		this.socket.emit('cannonHit', { enemyId });
+	}
+
+	emitCannonFired(x: number, y: number, vx: number, vy: number): void {
+		if (DEBUG) console.log('[NetworkManager] emitCannonFired:', x.toFixed(0), y.toFixed(0));
+		this.socket.emit('cannonFired', { x, y, vx, vy });
 	}
 
 	getSocketId(): string {

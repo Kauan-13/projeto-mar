@@ -69,6 +69,8 @@ export const MAP_WIDTH = 2560;
 export const MAP_HEIGHT = 2560;
 export const ENEMY_SERVER_SPEED = 3.5;
 export const ENEMY_HIT_DISTANCE = 100;
+export const ENEMY_SCORE = 5;
+export const MAX_SCORE = 200;
 export const MAX_PLAYERS_PER_LOBBY = 3;
 export const LOBBY_CODE_LENGTH = 6;
 

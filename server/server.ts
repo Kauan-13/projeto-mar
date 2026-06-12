@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, type Socket } from 'socket.io';
 import type { PlayerData, PlayerMovementData, Station, StationChangeData, ShipMoveData, EnemyData, LobbyState } from '../shared/types.ts';
-import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE, ENEMY_HP, CANNON_DAMAGE, MAX_PLAYERS_PER_LOBBY, LOBBY_CODE_LENGTH } from '../shared/types.ts';
+import { SHIP_X, SHIP_Y, PLAYER_SPEED, SHIP_SPEED, SHIP_ROTATION_SPEED, SHIP_MAX_HP, ENEMY_DAMAGE, MAX_ENEMIES, ENEMY_SPAWN_INTERVAL_MS, ENEMY_SPAWN_MARGIN, MAP_WIDTH, MAP_HEIGHT, ENEMY_SERVER_SPEED, ENEMY_HIT_DISTANCE, ENEMY_HP, CANNON_DAMAGE, MAX_PLAYERS_PER_LOBBY, LOBBY_CODE_LENGTH, ENEMY_SCORE, MAX_SCORE } from '../shared/types.ts';
 
 const DEBUG = true;
 
@@ -242,12 +242,18 @@ io.on('connection', (socket: Socket) => {
     e.hp = Math.max(0, e.hp - CANNON_DAMAGE);
     if (e.hp <= 0) {
       delete lobby.enemies[data.enemyId];
-      lobby.score++;
+      lobby.score = Math.min(lobby.score + ENEMY_SCORE, MAX_SCORE);
       emitToLobby(lobby.code, 'enemyDestroyed', { id: data.enemyId });
       emitToLobby(lobby.code, 'scoreUpdated', { score: lobby.score });
     } else {
       emitToLobby(lobby.code, 'enemyDamaged', { id: data.enemyId, hp: e.hp });
     }
+  });
+
+  socket.on('cannonFired', (data: { x: number; y: number; vx: number; vy: number }) => {
+    const lobby = lobbyFromSocket(socket);
+    if (!lobby) return;
+    broadcastToLobby(lobby.code, socket.id, 'cannonFired', data);
   });
 
   socket.on('disconnect', () => {

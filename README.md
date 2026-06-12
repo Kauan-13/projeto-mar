@@ -6,6 +6,66 @@ Jogo cooperativo 2D onde dois piratas pilotam juntos um navio caravela, enfrenta
 
 ---
 
+## Integração com a Feira de Jogos
+
+Este jogo pode ser integrado à [Feira de Jogos](https://feira-de-jogos.dev.br) para que os jogadores recebam créditos (tijolinhos) com base na pontuação que alcançam.
+
+### Como funciona
+
+No fim de cada partida, a tela de *Game Over* exibe a pontuação dos jogadores. A integração com a Feira de Jogos usa OAuth 2.0 (Google) para autenticar o jogador e envia um `POST` para a API da feira com a pontuação obtida.
+
+### Passo a passo para o professor
+
+1. **Descomentar o script do Google no `index.html`**
+
+   Arquivo: `client/src/index.html`
+
+   ```html
+   <!-- <script src="https://accounts.google.com/gsi/client" async></script> -->
+   ```
+   Remova os `<!-- -->` ao redor da linha.
+
+2. **Descomentar o bloco de integração no `GameOverScene.ts`**
+
+   Arquivo: `client/src/scenes/GameOverScene.ts`
+
+   Localize o bloco comentado dentro do método `create()` e descomente tudo entre `// import axios from "axios"` e `// google.accounts.id.prompt();`.
+
+3. **Verificar dependências**
+
+   As bibliotecas `axios` e `@types/google.accounts` já estão no `client/package.json`. Se precisar reinstalar:
+   ```bash
+   cd client && npm install
+   ```
+
+4. **Configurar o `product`**
+
+   No `GameOverScene.ts`, dentro do bloco descomentado, substitua:
+   ```ts
+   product: "They Will Drown",
+   ```
+   pelo **ID numérico** do jogo "They Will Drown" no banco de dados da Feira de Jogos. O professor responsável terá esse número.
+
+5. **Valor enviado**
+
+   O parâmetro `value` enviado para a API é a pontuação final dos jogadores (`finalScore`), que vai de 0 a 200 (padrão definido em `shared/types.ts` — `MAX_SCORE`).
+
+### Diagrama da requisição
+
+```
+Game Over (tela)
+    ↓
+Google OAuth (pop-up de login)
+    ↓
+POST https://feira-de-jogos.dev.br/api/v2/credit
+  body: { product: "They Will Drown", value: <pontuação> }
+  headers: { Authorization: Bearer <token_google> }
+    ↓
+Crédito adicionado à conta do jogador na Feira de Jogos
+```
+
+---
+
 ## Como rodar
 
 ### Pré-requisitos
